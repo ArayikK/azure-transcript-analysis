@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,6 +8,7 @@
          This project already has one (Program.cs), so we turn that off to avoid a
          "program has more than one entry point" build error. -->
     <GenerateProgramFile>false</GenerateProgramFile>
+    <UserSecretsId>ca4a604e-64cb-4628-b0b8-b677e7089434</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -19,8 +19,11 @@ Search for "TODO (Member X)" in the code to jump straight to your spots.
  PII detection call, DI registration in Program.cs.
 
  Still on Member 1:
-   - Put the REAL endpoint + key into appsettings.json (locally!)
+   - Set the real Azure endpoint + key with user-secrets
+     (see "AZURE KEY SETUP" at the bottom of this file)
      and make one test call to verify the connection works.
+   - Share KEY 1 with teammates through a PRIVATE channel
+     (direct message) — never commit it or post it publicly.
 
 ---------------------------------------------------------------------
  MEMBER 2 — PII extraction                            [STATUS: TODO]
@@ -136,4 +139,29 @@ Search for "TODO (Member X)" in the code to jump straight to your spots.
 
  Work on YOUR branch, commit, push, then open a Pull Request
  to main when your part is done.
+
+---------------------------------------------------------------------
+ AZURE KEY SETUP (every member, once, on their own machine)
+---------------------------------------------------------------------
+ The Azure endpoint + key are NOT in the repository (on purpose —
+ appsettings.json only has placeholders). Get the real key from
+ Member 1 in a private message, then run these two commands in the
+ project folder (where the .csproj file is):
+
+   dotnet user-secrets set "AzureLanguageEndpoint" "https://transcript-language-service.cognitiveservices.azure.com/"
+   dotnet user-secrets set "AzureLanguageKey" "<THE-KEY-FROM-MEMBER-1>"
+
+ That's it — dotnet run / dotnet test will now use the real values.
+ The secret is stored OUTSIDE the project folder (in your Windows
+ user profile), so it can never be committed to git by accident.
+
+ To check what you have stored:   dotnet user-secrets list
+ To remove it:                    dotnet user-secrets clear
+
+ RULES:
+   - NEVER paste the key into appsettings.json, code, or any
+     committed file.
+   - NEVER post the key in the group chat / GitHub issues / PRs.
+   - If the key ever leaks, Member 1 regenerates it in Azure Portal
+     (Keys and Endpoint -> Regenerate Key 1) and re-shares it.
 =====================================================================
