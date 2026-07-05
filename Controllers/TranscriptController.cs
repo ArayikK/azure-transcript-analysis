@@ -6,23 +6,6 @@ namespace Task_2_TranscriptAnalysis.Controllers;
 
 /// <summary>
 /// OWNER: Member 4
-///
-/// TODO (Member 4): Create POST endpoint /api/transcript/analyze
-///   - Accept the TranscriptRequest model (transcriptText, language).
-///   - Add validation:
-///       * transcriptText must not be null/empty/whitespace  -> return 400 Bad Request
-///       * language must be "en" or "hy"                     -> return 400 Bad Request
-///       * transcriptText max length is 50,000 characters    -> return 400 Bad Request
-///   - Add error handling:
-///       * Azure down / unreachable          -> return an error message (503 Service Unavailable)
-///       * Wrong Azure key                   -> return 401 Unauthorized
-///         (do NOT leak the key or full Azure error details to the client)
-///       * Any other unexpected error        -> return 500 Internal Server Error
-///     Tip: Azure SDK errors are thrown as Azure.RequestFailedException —
-///     check its .Status property to tell the cases apart (401 = bad key).
-///   - Return the TranscriptResponse model:
-///       * Conversation        -> from ISpeakerRoleService.SplitConversation(...)
-///       * ExtractedAttributes -> from ITranscriptAnalysisService.ExtractAttributes(...)
 /// </summary>
 [ApiController]
 [Route("api/transcript")]
@@ -34,7 +17,6 @@ public class TranscriptController : ControllerBase
 
     /// <summary>
     /// All dependencies arrive via dependency injection (configured in Program.cs).
-    /// Member 2's and Member 3's services are already injected and ready to use.
     /// </summary>
     public TranscriptController(
         ITranscriptAnalysisService transcriptAnalysisService,
@@ -53,22 +35,62 @@ public class TranscriptController : ControllerBase
     [HttpPost("analyze")]
     public async Task<ActionResult<TranscriptResponse>> Analyze([FromBody] TranscriptRequest request)
     {
-        // TODO (Member 4): implement validation, service calls, and error
-        // handling as described in the class comment above. Rough outline:
-        //
-        //   1. Validate request.TranscriptText and request.Language
-        //      (return BadRequest("...") with a clear message when invalid).
-        //   2. var conversation = _speakerRoleService.SplitConversation(
-        //          request.TranscriptText, request.Language);
-        //   3. var attributes = await _transcriptAnalysisService.ExtractAttributes(
-        //          request.TranscriptText, request.Language);
-        //   4. Wrap Azure calls in try/catch (Azure.RequestFailedException).
-        //   5. return Ok(new TranscriptResponse { ... });
+        // 1. Validate request and TranscriptText
+        if (request == null || string.IsNullOrWhiteSpace(request.TranscriptText))
+        {
+            return BadRequest("Transcript text must not be null, empty, or whitespace.");
+        }
 
-        await Task.CompletedTask; // remove once the real implementation is added
+        // Validate transcript length (Max 50,000 chars)
+        if (request.TranscriptText.Length > 50000)
+        {
+            return BadRequest("Transcript text length exceeds the limit of 50,000 characters.");
+        }
 
-        // Placeholder so the project compiles and the route is visible in Swagger:
-        return StatusCode(StatusCodes.Status501NotImplemented,
-            "Not implemented yet — Member 4's task.");
+        // Validate supported languages ("en" or "hy")
+        if (string.IsNullOrWhiteSpace(request.Language) || 
+            (!request.Language.Equals("en", StringComparison.OrdinalIgnoreCase) && 
+             !request.Language.Equals("hy", StringComparison.OrdinalIgnoreCase)))
+        {
+            return BadRequest("Unsupported language. Language must be either 'en' (English) or 'hy' (Armenian).");
+        }
+
+        try
+        {
+            // 2. Split the conversation into Agent/Caller turns (Member 3's service)
+            var conversation = _speakerRoleService.SplitConversation(request.TranscriptText, request.Language);
+
+            // 3. Extract PII attributes using Azure (Member 2's service)
+            var attributes = await _transcriptAnalysisService.ExtractAttributes(request.TranscriptText, request.Language);
+
+            // 4. Return the successful response model
+            return Ok(new TranscriptResponse
+            {
+                Conversation = conversation,
+                ExtractedAttributes = attributes
+            });
+        }
+        // 5. Azure SDK Specific Error Handling
+        catch (Azure.RequestFailedException ex) when (ex.Status == 401)
+        {
+            _logger.LogError(ex, "Azure Language Service authentication failed. Invalid key configured.");
+            return StatusCode(StatusCodes.Status401Unauthorized, "Unauthorized: Invalid configuration key.");
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status >= 500 || ex.Status == 503)
+        {
+            _logger.LogError(ex, "Azure Language Service returned a server error or is unavailable.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service Unavailable: Azure service is currently unreachable.");
+        }
+        catch (System.Net.Http.HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error occurred while connecting to Azure Language Service.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service Unavailable: Azure down or unreachable.");
+        }
+        // Catch-all for any other unexpected errors
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred during transcript analysis.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal Server Error: An unexpected error occurred.");
+        }
     }
 }
