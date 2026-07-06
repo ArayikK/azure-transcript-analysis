@@ -1,0 +1,1022 @@
+=============================================================================
+                            EXPLAIN.TXT
+        Full explanation of the Transcript Analysis project
+        Repository: https://github.com/ArayikK/azure-transcript-analysis
+=============================================================================
+
+This document explains EVERYTHING about this project: what it is, how it
+works, every file, every class, every method, how they connect, what is
+already done, and what each team member must build. It is written for
+someone who has basic C# knowledge but has never seen this project — and
+also as a reference for the team while working.
+
+Read it top to bottom once; later, jump to your member's section.
+
+-----------------------------------------------------------------------------
+ TABLE OF CONTENTS
+-----------------------------------------------------------------------------
+  1. WHAT IS THIS PROJECT? (the big picture)
+  2. KEY CONCEPTS EXPLAINED (read this if anything sounds unfamiliar)
+       2.1  What is a Web API?
+       2.2  What is JSON?
+       2.3  What is ASP.NET Core?
+       2.4  What is Azure AI Language Service and PII detection?
+       2.5  What is a NuGet package?
+       2.6  What is an interface and why do we use them?
+       2.7  What is Dependency Injection (DI)?
+       2.8  What is async / await / Task?
+       2.9  What are Models (DTOs)?
+       2.10 What is a Controller?
+       2.11 What is Swagger?
+       2.12 What are user-secrets?
+       2.13 What is xUnit / an integration test?
+       2.14 Git: branches and Pull Requests
+  3. HOW A REQUEST FLOWS THROUGH THE SYSTEM (end to end)
+  4. THE PROJECT FILES, ONE BY ONE
+       4.1  Task_2_TranscriptAnalysis.csproj
+       4.2  Program.cs
+       4.3  appsettings.json
+       4.4  Models/TranscriptRequest.cs
+       4.5  Models/TranscriptResponse.cs
+       4.6  Models/ExtractedAttributes.cs
+       4.7  Models/ConversationTurn.cs
+       4.8  Properties/launchSettings.json and the .http file
+  5. MEMBER 1 — WHAT HAS BEEN DONE (detailed walkthrough)
+       5.1  Project setup
+       5.2  AzureLanguageService.cs explained line by line
+       5.3  Configuration and key safety
+       5.4  Git setup
+       5.5  What is still on Member 1
+  6. MEMBER 2 — PII EXTRACTION (what must be done, in detail)
+  7. MEMBER 3 — SPEAKER ROLE DETECTION (what must be done, in detail)
+  8. MEMBER 4 — THE API ENDPOINT (what must be done, in detail)
+  9. MEMBER 5 — TESTING AND DOCUMENTATION (what must be done, in detail)
+ 10. HOW THE PARTS DEPEND ON EACH OTHER (who is blocked by whom)
+ 11. COMMON MISTAKES TO AVOID
+ 12. QUICK REFERENCE CARD
+
+=============================================================================
+ 1. WHAT IS THIS PROJECT? (the big picture)
+=============================================================================
+
+We are building a small web service ("Web API") for analyzing call-center
+transcripts. A transcript is the written text of a phone conversation,
+for example:
+
+    Agent: Hello, thank you for calling. How can I help you?
+    Caller: Hi, my name is John Smith, my phone is 555-123-4567.
+
+A client program (a website, a mobile app, or a tester like Swagger or
+Postman) sends this text to our service over HTTP. Our service:
+
+  1. Splits the conversation into "turns" and labels who is speaking
+     (Agent or Caller) — this is Member 3's logic.
+  2. Sends the text to Microsoft's cloud service (Azure AI Language) which
+     finds personal information (PII) in it: names, addresses, US social
+     security numbers, phone numbers, emails — connection built by
+     Member 1, result processing by Member 2.
+  3. Returns one combined JSON answer — assembled by Member 4's endpoint.
+  4. All of it is verified by Member 5's tests and documented in /docs.
+
+The service supports two languages: English ("en") and Armenian ("hy").
+
+Input example (what a client sends):
+
+    POST /api/transcript/analyze
+    {
+      "transcriptText": "Agent: Hello...\nCaller: My name is John Smith...",
+      "language": "en"
+    }
+
+Output example (what our service answers):
+
+    {
+      "conversation": [
+        { "role": "Agent",  "text": "Hello..." },
+        { "role": "Caller", "text": "My name is John Smith..." }
+      ],
+      "extractedAttributes": {
+        "name": "John Smith",
+        "address": null,
+        "socialSecurityNumber": null,
+        "phoneNumber": "555-123-4567",
+        "email": null
+      }
+    }
+
+Notice: attributes that were NOT found in the text are null. That is a
+deliberate design decision — null clearly means "not present".
+
+=============================================================================
+ 2. KEY CONCEPTS EXPLAINED
+=============================================================================
+
+2.1 WHAT IS A WEB API?
+----------------------
+An API (Application Programming Interface) is a way for programs to talk
+to each other. A WEB API does this over the internet using HTTP — the same
+protocol your browser uses. Instead of returning web pages, a Web API
+returns DATA (usually JSON).
+
+HTTP basics you need:
+  - A request has a METHOD (GET = read, POST = send data, etc.),
+    a URL (like /api/transcript/analyze), and often a BODY (the JSON data).
+  - A response has a STATUS CODE and usually a JSON body.
+
+Status codes used in this project:
+    200 OK                  — everything worked, here is your result
+    400 Bad Request         — YOUR input was wrong (empty text, bad language)
+    401 Unauthorized        — the Azure key is wrong
+    500 Internal Server Error — unexpected crash inside our code
+    501 Not Implemented     — placeholder answer while Member 4's work is TODO
+    503 Service Unavailable — Azure is down / unreachable
+
+2.2 WHAT IS JSON?
+-----------------
+JSON (JavaScript Object Notation) is a text format for data:
+
+    { "name": "John", "age": 30, "hobbies": ["chess", "code"] }
+
+ASP.NET Core converts automatically between JSON text and C# objects:
+when a request comes in, the JSON body becomes a C# object (our
+TranscriptRequest); when we return a C# object (our TranscriptResponse),
+it becomes JSON text. This automatic conversion is called SERIALIZATION.
+Note: C# properties are PascalCase (TranscriptText) but appear in JSON as
+camelCase (transcriptText) — ASP.NET Core does this renaming by default.
+
+2.3 WHAT IS ASP.NET CORE?
+-------------------------
+Microsoft's framework for building web applications and APIs in C#.
+"Web API project" = an ASP.NET Core project that only serves data (no HTML
+pages). Our project targets .NET 8, a long-term-support version.
+When you run `dotnet run`, ASP.NET Core starts a small web server
+(called Kestrel) on your machine that listens for HTTP requests.
+
+2.4 WHAT IS AZURE AI LANGUAGE SERVICE AND PII DETECTION?
+--------------------------------------------------------
+Azure is Microsoft's cloud. "AI Language" is one of its services: you send
+it text, it sends back analysis. We use ONE feature of it:
+PII detection ("Personally Identifiable Information").
+
+You send:    "My name is John Smith, call me at 555-123-4567"
+Azure finds: [ { Text: "John Smith",   Category: Person,      Confidence: 0.92 },
+               { Text: "555-123-4567", Category: PhoneNumber, Confidence: 0.98 } ]
+
+Each found item is called an ENTITY. Each entity has:
+  - Text            — the exact piece of text that was found
+  - Category        — what kind of thing it is (Person, Address,
+                      PhoneNumber, Email, USSocialSecurityNumber, and more)
+  - ConfidenceScore — how sure Azure is, from 0.0 to 1.0
+
+Our Azure resource (created by Member 1 in the Azure Portal):
+  - Name: transcript-language-service, Region: East US, Tier: Free
+  - Free tier limit: 5,000 "text records" per month — plenty for us.
+To talk to it, a program needs two values: the ENDPOINT (its URL) and a
+KEY (like a password). See section 5.3 for how we store them safely.
+
+2.5 WHAT IS A NUGET PACKAGE?
+----------------------------
+NuGet is the package manager for .NET — a library store. Instead of writing
+low-level code to call Azure's web service ourselves, we installed the
+official library `Azure.AI.TextAnalytics` (v5.3.0). It gives us ready-made
+classes like TextAnalyticsClient. Packages are listed in the .csproj file
+and downloaded automatically when the project builds.
+
+2.6 WHAT IS AN INTERFACE AND WHY DO WE USE THEM?
+------------------------------------------------
+An interface is a CONTRACT: a list of methods with no implementation.
+
+    public interface ISpeakerRoleService
+    {
+        List<ConversationTurn> SplitConversation(string text, string language);
+    }
+
+Any class that "implements" this interface promises to provide those
+methods. In this project EVERY service has an interface:
+
+    IAzureLanguageService      -> implemented by AzureLanguageService
+    ITranscriptAnalysisService -> implemented by TranscriptAnalysisService
+    ISpeakerRoleService        -> implemented by SpeakerRoleService
+
+WHY? Two big reasons:
+  a) TESTING. Member 5 can create a FAKE class that also implements
+     IAzureLanguageService but returns hardcoded data instead of calling
+     the real Azure. Tests then run fast, free, and without internet.
+  b) LOOSE COUPLING. The controller only knows "something that can split
+     conversations" — not which exact class does it. Parts can be swapped
+     without rewriting other parts.
+
+RULE FOR THE TEAM: always depend on the INTERFACE (ask for
+ISpeakerRoleService in your constructor), never on the concrete class.
+
+2.7 WHAT IS DEPENDENCY INJECTION (DI)?
+--------------------------------------
+Classes need other classes to work: the controller needs the services,
+TranscriptAnalysisService needs AzureLanguageService. Instead of each class
+creating its helpers with `new`, ASP.NET Core CREATES AND HANDS THEM OVER
+automatically. That is dependency injection.
+
+How it works in our project, step by step:
+  1. In Program.cs we REGISTER each service:
+         builder.Services.AddSingleton<IAzureLanguageService, AzureLanguageService>();
+         builder.Services.AddScoped<ITranscriptAnalysisService, TranscriptAnalysisService>();
+         builder.Services.AddScoped<ISpeakerRoleService, SpeakerRoleService>();
+     This tells ASP.NET Core: "when someone asks for this interface,
+     give them an instance of this class."
+  2. A class ASKS for what it needs simply by listing it in its
+     constructor parameters:
+         public TranscriptController(ITranscriptAnalysisService a,
+                                     ISpeakerRoleService b, ...) { ... }
+  3. When a request arrives, ASP.NET Core builds the controller,
+     sees what its constructor needs, builds those too (and whatever
+     THEY need, recursively), and wires everything together.
+
+LIFETIMES (the difference between AddSingleton and AddScoped):
+  - Singleton: ONE object for the whole application lifetime.
+    Used for AzureLanguageService because the Azure client inside it is
+    thread-safe and relatively expensive to create — create once, reuse.
+  - Scoped: one NEW object per HTTP request.
+    Used for the other services; a safe default.
+You never call `new AzureLanguageService(...)` anywhere — DI does it.
+
+2.8 WHAT IS ASYNC / AWAIT / TASK?
+---------------------------------
+Calling Azure over the internet takes time (tens to hundreds of
+milliseconds). If our code just waited doing nothing, the server thread
+would be blocked. C# solves this with asynchronous methods:
+
+  - A method returning `Task<Something>` means: "this will produce a
+    Something LATER."
+  - `await` means: "pause here without blocking the thread; continue when
+    the result arrives."
+  - Any method that uses `await` must be marked `async`.
+
+That is why the chain of methods that eventually calls Azure is async
+all the way up:
+    controller Analyze(...)            -> async Task<ActionResult<...>>
+    ExtractAttributes(...)             -> async Task<ExtractedAttributes>
+    AzureLanguageService.AnalyzeText() -> async Task<PiiEntityCollection>
+Member 3's SplitConversation is NOT async — it is pure string processing,
+no waiting involved, so a plain method is correct there.
+
+2.9 WHAT ARE MODELS (DTOs)?
+---------------------------
+"Model" here means a simple C# class whose only job is to CARRY DATA —
+no logic, just properties. Also called DTOs (Data Transfer Objects).
+They define the SHAPE of our JSON input and output. Ours live in /Models
+and are described one by one in section 4. They are the SHARED CONTRACT
+between all members — if Member 2 renames a property, Member 4's response
+and Member 5's tests change too. That is why the rule is: DO NOT change
+files in /Models without team agreement.
+
+2.10 WHAT IS A CONTROLLER?
+--------------------------
+The controller is the FRONT DOOR of the API. It is a class whose public
+methods ("actions") are mapped to URLs. Attributes (the things in square
+brackets) configure it:
+
+    [ApiController]            — enables API behaviors (auto JSON handling)
+    [Route("api/transcript")]  — this controller answers under /api/transcript
+    [HttpPost("analyze")]      — this method answers POST /api/transcript/analyze
+    [FromBody]                 — build this parameter from the request's JSON body
+
+The controller should stay THIN: check input, call services, shape the
+response. Real logic belongs in the services. This separation is the whole
+point of the folder structure:
+    /Controllers — traffic and validation
+    /Services    — business logic
+    /Models      — data shapes
+
+2.11 WHAT IS SWAGGER?
+---------------------
+Swagger (OpenAPI) generates an interactive web page listing all endpoints.
+Run the project (`dotnet run`), open  https://localhost:<port>/swagger
+(the port is printed in the console). You can type a request body right in
+the browser, press Execute, and see the response — no extra tools needed.
+This is the easiest way to manually test the API while developing.
+
+2.12 WHAT ARE USER-SECRETS?
+---------------------------
+A built-in .NET mechanism for keeping secret values OUTSIDE the project
+folder so they can never be committed to git. The secret values live in
+your Windows profile:  %APPDATA%\Microsoft\UserSecrets\<project-guid>\secrets.json
+During development ASP.NET Core reads configuration in this order (later
+sources override earlier ones): appsettings.json -> user-secrets ->
+environment variables. So the placeholders in appsettings.json stay
+committed forever, and your real key (set via `dotnet user-secrets set`)
+silently overrides them on your machine only.
+Exact commands: see "AZURE KEY SETUP" in NAVIGATION.txt.
+
+2.13 WHAT IS xUNIT / AN INTEGRATION TEST?
+-----------------------------------------
+xUnit is a testing framework: you write methods marked [Fact], and
+`dotnet test` runs them and reports pass/fail.
+
+  - UNIT test: tests one class alone.
+  - INTEGRATION test: tests the whole system working together.
+
+Our tests are integration tests thanks to WebApplicationFactory<Program>:
+it boots the ENTIRE API in memory (real Program.cs, real DI, real
+controller, real validation) and hands you an HttpClient whose requests go
+to that in-memory server. No real network, no deployed server needed —
+but the request passes through all the real code.
+
+2.14 GIT: BRANCHES AND PULL REQUESTS
+------------------------------------
+The repository has these branches on GitHub:
+    main                          — the shared, always-working version
+    F_task2/member2-extraction    — Member 2 works here
+    F_task2/member3-speaker-roles — Member 3 works here
+    F_task2/member4-api-endpoint  — Member 4 works here
+    F_task2/member5-testing       — Member 5 works here
+
+Workflow for each member:
+    git clone https://github.com/ArayikK/azure-transcript-analysis.git
+    git switch F_task2/member<N>-<your-part>
+    ... write code, then:
+    git add .
+    git commit -m "clear message about what you did"
+    git push
+Then on GitHub: open a PULL REQUEST (PR) from your branch into main.
+A PR is a request to merge your work; the team reviews the changes,
+comments, and merges. This way main never receives untested code directly.
+
+=============================================================================
+ 3. HOW A REQUEST FLOWS THROUGH THE SYSTEM (end to end)
+=============================================================================
+
+Follow one request through every layer (numbers = order of events):
+
+  (1) Client sends:
+        POST https://localhost:7xxx/api/transcript/analyze
+        Body: { "transcriptText": "Agent: Hello...", "language": "en" }
+
+  (2) ASP.NET Core routing looks at the URL and method, finds
+      TranscriptController.Analyze (because of [Route] + [HttpPost]).
+
+  (3) The JSON body is DESERIALIZED into a TranscriptRequest object.
+
+  (4) DI builds the controller and injects ITranscriptAnalysisService,
+      ISpeakerRoleService, and a logger into its constructor.
+
+  (5) VALIDATION (Member 4's code): is transcriptText non-empty?
+      is language "en" or "hy"? is length <= 50,000?
+      If any check fails -> return 400 immediately; Azure is never called.
+
+  (6) The controller calls _speakerRoleService.SplitConversation(text, lang)
+      (Member 3's code). Pure C# string work, no network. Returns
+      List<ConversationTurn> — e.g. [ {Agent, "Hello..."}, {Caller, "..."} ].
+
+  (7) The controller calls await
+      _transcriptAnalysisService.ExtractAttributes(text, lang)
+      (Member 2's code), which internally calls
+      await _azureLanguageService.AnalyzeText(text, lang) (Member 1's code).
+
+  (8) AzureLanguageService sends the text over HTTPS to
+      https://transcript-language-service.cognitiveservices.azure.com/
+      with the secret key in a header. Azure analyzes the text and responds
+      with a list of PII entities.
+
+  (9) Member 2's code maps those entities into an ExtractedAttributes
+      object (Person->Name, PhoneNumber->PhoneNumber, ... not found->null).
+
+ (10) The controller combines both results into a TranscriptResponse
+      and returns Ok(response) -> serialized to JSON -> 200 OK to client.
+
+ (ERR) If step 8 throws (Azure down, wrong key), Member 4's try/catch
+      converts the exception into a clean error response (503 or 401)
+      instead of an ugly crash page.
+
+=============================================================================
+ 4. THE PROJECT FILES, ONE BY ONE
+=============================================================================
+
+4.1 Task_2_TranscriptAnalysis.csproj
+------------------------------------
+The PROJECT FILE — tells the .NET SDK how to build:
+  - <TargetFramework>net8.0</TargetFramework> — we build for .NET 8.
+  - <Nullable>enable</Nullable> — the compiler warns when something could
+    be null unexpectedly; that is why "string?" (with ?) appears in models:
+    the ? explicitly says "this may be null".
+  - <GenerateProgramFile>false</GenerateProgramFile> — the test SDK
+    normally auto-creates a hidden Main() for test projects; our project
+    already has an entry point (Program.cs), so this avoids a
+    "two entry points" build error. Needed because our tests live INSIDE
+    the API project (in /Tests) instead of a separate test project.
+  - <UserSecretsId> — the id linking this project to your local secret
+    store (see 2.12). The id itself is not secret.
+  - <PackageReference ...> — the NuGet packages:
+        Azure.AI.TextAnalytics          — the Azure client library
+        Swashbuckle.AspNetCore          — Swagger
+        xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk — testing
+        Microsoft.AspNetCore.Mvc.Testing — WebApplicationFactory for
+                                           integration tests
+
+4.2 Program.cs
+--------------
+The ENTRY POINT — the first code that runs. What it does, in order:
+  1. WebApplication.CreateBuilder(args) — prepares the app: loads
+     configuration (appsettings.json, user-secrets, environment variables),
+     sets up logging, prepares the DI container.
+  2. builder.Services.Add... — registers services into DI:
+     framework ones (AddControllers, AddSwaggerGen) and OUR three services
+     (see 2.7 for what registration means and the lifetime choices).
+  3. app.UseSwagger()/UseSwaggerUI() — only in Development mode.
+  4. app.UseHttpsRedirection() — bounces http:// to https://.
+  5. app.MapControllers() — connects [Route] attributes to actual URLs.
+  6. app.Run() — starts the web server; blocks until you stop the app.
+  7. `public partial class Program {}` at the bottom — a technical trick:
+     the compiler generates a hidden Program class for top-level code;
+     this line makes it PUBLIC so the test project's
+     WebApplicationFactory<Program> can see and boot it. Do not remove.
+
+4.3 appsettings.json
+--------------------
+The CONFIGURATION file (committed to git, so NO REAL SECRETS here):
+  - Logging levels — how chatty the console output is.
+  - AllowedHosts — which hostnames the app accepts ("*" = any).
+  - AzureLanguageEndpoint / AzureLanguageKey — PLACEHOLDERS. Real values
+    come from user-secrets on each developer's machine (see 2.12).
+There is also appsettings.Development.json — extra settings that apply
+only when running in Development mode (default when you `dotnet run`).
+
+4.4 Models/TranscriptRequest.cs
+-------------------------------
+The INPUT shape. Two properties:
+    TranscriptText (string) — the transcript; must be non-empty, <= 50,000 chars
+    Language       (string) — "en" or "hy"
+When a POST arrives, ASP.NET Core fills this object from the JSON body.
+The `= string.Empty;` initializers avoid null warnings — if a field is
+missing in the JSON, the property is an empty string instead of null.
+
+4.5 Models/TranscriptResponse.cs
+--------------------------------
+The OUTPUT shape. Two properties:
+    Conversation        (List<ConversationTurn>) — Member 3's result
+    ExtractedAttributes (ExtractedAttributes)    — Member 2's result
+The controller (Member 4) fills both and returns it; ASP.NET Core turns it
+into the JSON the client receives.
+
+4.6 Models/ExtractedAttributes.cs
+---------------------------------
+The five PII fields: Name, Address, SocialSecurityNumber, PhoneNumber,
+Email. All are `string?` (nullable) ON PURPOSE: null = "not found in the
+text". Never put "" or "N/A" — tests will check for real null.
+Mapping from Azure categories:
+    Person -> Name                          Address -> Address
+    USSocialSecurityNumber -> SocialSecurityNumber
+    PhoneNumber -> PhoneNumber              Email -> Email
+
+4.7 Models/ConversationTurn.cs
+------------------------------
+One utterance of the dialogue: Role (who) + Text (what).
+Role values: "Agent" / "Caller", or "Speaker 1" / "Speaker 2" when roles
+cannot be detected. The response's "conversation" array is a list of these.
+
+4.8 Properties/launchSettings.json and Task_2_TranscriptAnalysis.http
+---------------------------------------------------------------------
+launchSettings.json — LOCAL run settings: which port `dotnet run` uses,
+that the browser environment is "Development". Generated by the template.
+The .http file — a scratch file for trying requests directly from
+Visual Studio / VS Code (with the REST Client extension). Optional helper.
+
+=============================================================================
+ 5. MEMBER 1 — WHAT HAS BEEN DONE (detailed walkthrough)
+=============================================================================
+
+5.1 PROJECT SETUP
+-----------------
+  - Created the ASP.NET Core Web API project targeting .NET 8, with the
+    folder structure /Controllers /Services /Models /Tests /docs.
+  - Installed NuGet packages (see 4.1).
+  - Deleted the template's example code (WeatherForecast).
+  - Created all four Models (section 4.4-4.7) as the shared contract.
+  - Wrote Program.cs with DI registrations for all three services.
+  - Created placeholder classes for Members 2-4 so THE PROJECT ALWAYS
+    COMPILES AND RUNS even before their logic exists:
+        TranscriptAnalysisService returns an empty ExtractedAttributes,
+        SpeakerRoleService returns the whole text as one "Speaker 1" turn,
+        TranscriptController.Analyze returns 501 Not Implemented.
+    This matters: everyone can build, run, and see Swagger from day one.
+  - Created the test skeleton for Member 5 (5 skipped tests that already
+    boot the app in memory).
+
+5.2 AzureLanguageService.cs EXPLAINED LINE BY LINE
+--------------------------------------------------
+File: Services/AzureLanguageService.cs — the ONLY class allowed to talk
+to Azure directly. Everything Azure-related is concentrated here so the
+rest of the code never deals with URLs, keys, or SDK details.
+
+  public interface IAzureLanguageService
+  {
+      Task<PiiEntityCollection> AnalyzeText(string text, string language);
+  }
+    The contract (see 2.6). PiiEntityCollection is a type from the Azure
+    SDK: essentially a list of PiiEntity objects (Text / Category /
+    ConfidenceScore — see 2.4).
+
+  private readonly TextAnalyticsClient _client;
+    The Azure SDK's client object. `readonly` = can only be set in the
+    constructor. It is stored once and reused for every call (the class is
+    a DI singleton — one instance for the app's whole lifetime).
+
+  public AzureLanguageService(IConfiguration configuration)
+    The constructor asks DI for IConfiguration — the merged view of
+    appsettings.json + user-secrets + environment variables.
+
+  string? endpoint = configuration["AzureLanguageEndpoint"];
+  string? key      = configuration["AzureLanguageKey"];
+    Reads the two settings by name. On a machine where user-secrets are
+    set, these are the REAL values; otherwise the placeholders.
+
+  if (string.IsNullOrWhiteSpace(endpoint) || ...) throw new InvalidOperationException(...)
+    FAIL FAST: if configuration is missing, stop immediately with a clear
+    message instead of failing later with a confusing network error.
+
+  _client = new TextAnalyticsClient(new Uri(endpoint), new AzureKeyCredential(key));
+    Creates the client: the endpoint says WHERE to send requests, the
+    AzureKeyCredential proves WHO we are. From here on the SDK handles
+    HTTPS, headers, retries, and JSON parsing for us.
+
+  public async Task<PiiEntityCollection> AnalyzeText(string text, string language)
+  {
+      Response<PiiEntityCollection> response =
+          await _client.RecognizePiiEntitiesAsync(text, language);
+      return response.Value;
+  }
+    The one working method. RecognizePiiEntitiesAsync sends the text to
+    Azure's PII endpoint and awaits the answer (see 2.8 for async).
+    Response<T> is an SDK wrapper (HTTP details + payload); .Value is the
+    payload — the entity collection — which we return to the caller
+    (Member 2's service).
+    This call THROWS Azure.RequestFailedException when something is wrong:
+      .Status == 401 -> bad key;  network errors -> Azure unreachable.
+    Deliberately NOT caught here — the controller (Member 4) decides how
+    to answer the client; this class only reports the truth.
+
+5.3 CONFIGURATION AND KEY SAFETY
+--------------------------------
+  - Azure resource created in the portal: transcript-language-service
+    (Language service, Free tier, East US).
+  - appsettings.json contains only placeholders and is safe to commit.
+  - Real endpoint + key go into user-secrets on each member's machine
+    (concept: 2.12; exact commands: NAVIGATION.txt "AZURE KEY SETUP").
+  - The key is shared between members ONLY via private message.
+  - If the key leaks: Azure Portal -> Keys and Endpoint -> Regenerate.
+
+5.4 GIT SETUP
+-------------
+  - Local project merged with the pre-existing GitHub repository
+    (which already contained /docs research files and a PDF) — both
+    histories preserved.
+  - Our /Docs was renamed to /docs to match the repo's existing folder.
+  - main + the four F_task2/... member branches pushed; all branches
+    currently start from the same commit (identical content).
+
+5.5 WHAT IS STILL ON MEMBER 1
+-----------------------------
+  - Set the real key locally (user-secrets) and make ONE test call to
+    Azure to prove the connection works end to end.
+  - Share the key privately with members as they need it (Member 2 first).
+
+=============================================================================
+ 6. MEMBER 2 — PII EXTRACTION (what must be done, in detail)
+=============================================================================
+File:   Services/TranscriptAnalysisService.cs
+Branch: F_task2/member2-extraction
+Method to implement:
+    public async Task<ExtractedAttributes> ExtractAttributes(
+        string transcriptText, string language)
+Currently returns an empty ExtractedAttributes (all nulls) so the app runs.
+
+YOUR JOB IN ONE SENTENCE: call Azure through Member 1's service, then
+convert Azure's entity list into our clean ExtractedAttributes model.
+
+STEP BY STEP:
+
+  1. The class already has the Azure service injected (see 2.7):
+         private readonly IAzureLanguageService _azureLanguageService;
+     DO NOT create your own TextAnalyticsClient — always go through this.
+
+  2. Get the entities:
+         PiiEntityCollection entities =
+             await _azureLanguageService.AnalyzeText(transcriptText, language);
+     What you receive is a collection of PiiEntity objects; each has
+     .Text, .Category, .ConfidenceScore (explained in 2.4).
+
+  3. Create the result object:
+         var result = new ExtractedAttributes();
+
+  4. Loop and map. Compare entity.Category with the SDK's constants
+     (PiiEntityCategory.Person, PiiEntityCategory.Address,
+      PiiEntityCategory.PhoneNumber, PiiEntityCategory.Email,
+      PiiEntityCategory.USSocialSecurityNumber):
+
+         foreach (PiiEntity entity in entities)
+         {
+             if (entity.Category == PiiEntityCategory.Person)
+                 result.Name = entity.Text;
+             else if (entity.Category == PiiEntityCategory.Address)
+                 result.Address = entity.Text;
+             // ... etc for the other three
+         }
+     (You need `using Azure.AI.TextAnalytics;` at the top — already there.)
+
+  5. DECISIONS you must make (and ideally agree with the team):
+     a) Duplicates: transcript mentions two people — which one is "the"
+        name? Options: keep the FIRST found, or keep the one with the
+        HIGHEST ConfidenceScore. Recommendation: highest confidence —
+        e.g. only overwrite result.Name if the new entity's score is
+        higher than the previous one's.
+     b) Confidence threshold: Azure sometimes guesses with low confidence
+        (0.3). Recommendation: ignore entities below ~0.5 to reduce
+        false positives:  if (entity.ConfidenceScore < 0.5) continue;
+     c) Ignore all OTHER categories Azure may return (Organization,
+        DateTime, etc.) — we only care about our five.
+
+  6. NOT FOUND = NULL. If no phone number exists in the text, simply never
+     set result.PhoneNumber — it stays null, which is exactly what the
+     JSON must show. Do not invent placeholder strings.
+
+  7. Armenian support: nothing special to code — you pass language ("hy")
+     to AnalyzeText and Azure handles it. Just TEST with Armenian text,
+     e.g. "Բարև ձեզ, իմ անունը Արամ Պետրոսյան է, հեռախոսս՝ 093-123456."
+     and check that the name comes back. If Armenian PII support turns out
+     to be weaker than English (possible!), document what works and what
+     does not — that finding goes to Member 5's test results document.
+
+  8. To test your work before Member 4's endpoint exists:
+     temporarily you can write a small test, or simply run the app and
+     wait until the endpoint exists. Simplest early check: ask Member 5
+     to pair with you, or write a quick [Fact] test that news up your
+     service with the real AzureLanguageService and asserts on a sample
+     sentence. YOU NEED THE REAL KEY for any real call — get it from
+     Member 1 (see NAVIGATION.txt AZURE KEY SETUP).
+
+WHAT YOU MUST NOT DO:
+  - Do not change ExtractedAttributes (shared model) without agreement.
+  - Do not catch Azure exceptions here and swallow them — let them bubble
+    up; Member 4's controller translates them into HTTP answers.
+  - Do not call Azure once per line of transcript — one call with the
+    whole text is enough (each call costs quota).
+
+DEFINITION OF DONE:
+  - English text with all 5 attributes -> all 5 filled correctly.
+  - Text without a phone -> phoneNumber is null (not "", not "null").
+  - Armenian text -> name (at minimum) extracted, findings documented.
+  - Code pushed to your branch, PR opened to main.
+
+=============================================================================
+ 7. MEMBER 3 — SPEAKER ROLE DETECTION (what must be done, in detail)
+=============================================================================
+File:   Services/SpeakerRoleService.cs
+Branch: F_task2/member3-speaker-roles
+Method to implement:
+    public List<ConversationTurn> SplitConversation(
+        string transcriptText, string language)
+Currently returns the entire text as ONE turn labeled "Speaker 1".
+
+YOUR JOB IN ONE SENTENCE: turn one big transcript string into a list of
+(who, what) pairs, labeling speakers as Agent/Caller when possible.
+
+NOTE: this is PURE STRING PROCESSING. No Azure, no async, no key needed.
+You can start immediately and test everything offline.
+
+STEP BY STEP:
+
+  1. Split the text into lines:
+         string[] lines = transcriptText.Split('\n',
+             StringSplitOptions.RemoveEmptyEntries |
+             StringSplitOptions.TrimEntries);
+     (Consider also handling "\r\n" — Windows line endings. Split on '\n'
+     and TrimEntries handles the leftover '\r' — verify this in a test.)
+
+  2. CASE A — THE TEXT HAS LABELS. A line looks like "Agent: Hello there".
+     Detect: does the line contain ':' reasonably early? Take the part
+     before the first ':' as the label, the rest as the text:
+         int colon = line.IndexOf(':');
+         string label = line.Substring(0, colon).Trim();
+         string text  = line.Substring(colon + 1).Trim();
+     Then normalize the label:
+       - "agent", "operator" (and Armenian equivalents like
+         "օպերատոր", "գործակալ")            -> "Agent"
+       - "caller", "customer", "client" (Armenian: "զանգահարող",
+         "հաճախորդ")                          -> "Caller"
+       - "Speaker 1" / "Speaker 2"            -> keep as is
+       - Some unknown label (e.g. a person's name like "Anna:") — team
+         decision: either keep the name as the role, or map 1st seen
+         unknown label -> Agent, 2nd -> Caller. Document your choice.
+     Compare labels case-insensitively:
+         label.Equals("agent", StringComparison.OrdinalIgnoreCase)
+
+  3. CASE B — NO LABELS AT ALL. Team decision (already agreed):
+         first speaker  = "Agent"
+         second speaker = "Caller"
+         then alternate: line 1 Agent, line 2 Caller, line 3 Agent, ...
+     Implementation idea: bool isAgent = true; flip it each line.
+
+  4. CASE C — CANNOT DETECT ANYTHING MEANINGFUL. Fall back to
+     "Speaker 1" / "Speaker 2" alternating. (When exactly to choose C over
+     B is your judgment — e.g. if the "conversation" looks like one block
+     of prose with no dialogue structure at all.)
+
+  5. MIXED CASE — WATCH OUT: some lines labeled, some not. Simplest
+     robust rule: if ANY line has a recognized label, use labels where
+     present and alternate from the last known speaker for unlabeled lines.
+     Keep it simple; document what you chose.
+
+  6. Build the result:
+         var turns = new List<ConversationTurn>();
+         turns.Add(new ConversationTurn { Role = "Agent", Text = "..." });
+     Return the list. NEVER return null; empty input handling (empty
+     list vs single empty turn) — the controller validates emptiness
+     before calling you, so you can assume non-empty text.
+
+  7. Armenian: the ':' splitting works for Armenian text identically.
+     Also note Armenian uses its own punctuation (e.g. "՞" question mark)
+     — irrelevant for splitting, but do not be surprised by it in tests.
+     Test with e.g.:
+         Օպերատոր: Բարև ձեզ, ինչպե՞ս կարող եմ օգնել:
+         Զանգահարող: Բարև, իմ անունը Արամ է:
+     CAREFUL: Armenian sometimes uses "։" (Armenian full stop, U+0589)
+     which LOOKS like ':' (colon) but is a different character! Decide
+     whether to treat it as a label separator too. Mention this to
+     Member 5 — great test case.
+
+DEFINITION OF DONE:
+  - Labeled English conversation -> correct Agent/Caller turns.
+  - Unlabeled conversation -> Agent/Caller alternating from first line.
+  - Undetectable -> Speaker 1 / Speaker 2.
+  - Armenian conversations work (both labeled and unlabeled).
+  - Code pushed to your branch, PR opened to main.
+
+=============================================================================
+ 8. MEMBER 4 — THE API ENDPOINT (what must be done, in detail)
+=============================================================================
+File:   Controllers/TranscriptController.cs
+Branch: F_task2/member4-api-endpoint
+Method to implement:
+    public async Task<ActionResult<TranscriptResponse>> Analyze(
+        [FromBody] TranscriptRequest request)
+Currently returns 501 Not Implemented.
+
+YOUR JOB IN ONE SENTENCE: be the front door — reject bad input with clear
+messages, orchestrate the two services, translate failures into proper
+HTTP answers, return the combined result.
+
+WHAT IS ALREADY WIRED FOR YOU: the constructor already receives
+ITranscriptAnalysisService (Member 2), ISpeakerRoleService (Member 3) and
+an ILogger via DI. The route attributes are set: your method IS
+POST /api/transcript/analyze already. You only fill the body.
+
+STEP BY STEP:
+
+  1. VALIDATION — three checks, each returning 400 with a human-readable
+     message (BadRequest("...") produces a 400 response):
+
+         if (string.IsNullOrWhiteSpace(request.TranscriptText))
+             return BadRequest("transcriptText must not be empty.");
+
+         if (request.Language != "en" && request.Language != "hy")
+             return BadRequest("language must be 'en' or 'hy'.");
+         (Consider case-insensitive comparison and/or trimming — "EN"?
+          Team decision; simplest is to require exact lowercase and SAY SO
+          in the error message.)
+
+         if (request.TranscriptText.Length > 50000)
+             return BadRequest("transcriptText must be at most 50,000 characters.");
+
+     ORDER MATTERS for user experience but any order is functionally fine.
+     Also: request itself can be null if the body is missing — the
+     [ApiController] attribute usually handles malformed JSON with an
+     automatic 400 before your code runs, so you normally do not need a
+     null check, but adding one is harmless defensive coding.
+
+  2. CALL THE SERVICES:
+         var conversation = _speakerRoleService.SplitConversation(
+             request.TranscriptText, request.Language);          // no await — not async
+         var attributes = await _transcriptAnalysisService.ExtractAttributes(
+             request.TranscriptText, request.Language);           // await — calls Azure
+
+  3. ERROR HANDLING — wrap the Azure-touching call in try/catch:
+
+         try
+         {
+             ... step 2 ...
+         }
+         catch (Azure.RequestFailedException ex) when (ex.Status == 401)
+         {
+             _logger.LogError(ex, "Azure authentication failed");
+             return StatusCode(StatusCodes.Status401Unauthorized,
+                 "Azure Language Service rejected our credentials. Check the configured key.");
+         }
+         catch (Azure.RequestFailedException ex)
+         {
+             _logger.LogError(ex, "Azure Language Service call failed");
+             return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                 "The analysis service is temporarily unavailable. Try again later.");
+         }
+         catch (Exception ex)
+         {
+             _logger.LogError(ex, "Unexpected error during transcript analysis");
+             return StatusCode(StatusCodes.Status500InternalServerError,
+                 "An unexpected error occurred.");
+         }
+
+     Concepts here:
+       - `catch (X ex) when (condition)` — an EXCEPTION FILTER: this catch
+         only fires when the condition is true. We use it to separate
+         "wrong key" (401) from "Azure otherwise broken" (503).
+       - SECURITY RULE: log the full exception (server side, for us) but
+         return only a GENERIC message to the client. Never include the
+         key, the endpoint URL, or ex.Message from Azure in the response —
+         error details can leak sensitive information.
+       - ILogger writes to the console when running locally — that is
+         where YOU look when debugging.
+
+  4. RETURN THE COMBINED RESULT:
+         return Ok(new TranscriptResponse
+         {
+             Conversation = conversation,
+             ExtractedAttributes = attributes
+         });
+     Ok(...) = HTTP 200 + the object serialized to JSON.
+
+  5. HOW TO TEST YOUR WORK: run `dotnet run`, open Swagger
+     (see 2.11), send requests:
+       - empty text -> expect your 400 message
+       - language "fr" -> expect your 400 message
+       - 50,001 chars (paste generated text) -> expect 400
+       - valid text WITHOUT the real key configured -> expect YOUR 401
+         (this is the beauty of the placeholder key: the "wrong key" path
+         is testable from day one!)
+       - valid text WITH the real key (get it from Member 1) -> 200 and the
+         combined JSON. Until Members 2-3 finish, the response will contain
+         placeholder data (empty attributes, one Speaker 1 turn) — that is
+         fine and expected; the plumbing is what you are testing.
+
+DEFINITION OF DONE:
+  - All three validation rules return 400 with clear messages.
+  - Wrong key -> 401; Azure unreachable -> 503; other errors -> 500;
+    no stack traces or secrets ever visible to the client.
+  - Happy path returns 200 with conversation + extractedAttributes.
+  - Code pushed to your branch, PR opened to main.
+
+=============================================================================
+ 9. MEMBER 5 — TESTING AND DOCUMENTATION (what must be done, in detail)
+=============================================================================
+File:   Tests/TranscriptAnalysisTests.cs
+Branch: F_task2/member5-testing
+Also yours: docs/TestResults.md and docs/ApiDocumentation.md (to create).
+
+YOUR JOB IN ONE SENTENCE: prove the system works (and show exactly where
+it does not), then document the API for outsiders.
+
+WHAT ALREADY EXISTS: 5 test stubs marked [Fact(Skip = "...")]. Skip means
+"do not run, just show as skipped" — so `dotnet test` is green while the
+system is unfinished. The class already boots the whole API in memory via
+WebApplicationFactory<Program> (concept: 2.13) and gives you _client
+(an HttpClient) whose requests hit the real code.
+
+WHILE WAITING FOR MEMBERS 2-4 — PREPARE (no code needed):
+  - Write your test cases on paper: input, expected status code,
+    expected body.
+  - Prepare English sample transcripts: one with ALL five attributes,
+    one with only a name, one with none, one with labels, one without.
+  - Prepare the same variety in Armenian.
+  - You CAN already implement TEST 5 and TEST 6 (validation tests) as soon
+    as Member 4 finishes validation — they do not need Azure at all.
+
+HOW TO IMPLEMENT A TEST (pattern for all of them):
+
+    [Fact]   // <- remove the Skip argument to activate
+    public async Task Analyze_EmptyTranscript_ReturnsBadRequest()
+    {
+        // ARRANGE — build the input
+        var request = new TranscriptRequest { TranscriptText = "", Language = "en" };
+
+        // ACT — call the API exactly like a real client would
+        var response = await _client.PostAsJsonAsync("/api/transcript/analyze", request);
+
+        // ASSERT — check what happened
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+  Concepts:
+    - Arrange / Act / Assert — the standard three-part test structure.
+    - PostAsJsonAsync — serializes the object to JSON and POSTs it.
+    - Assert.Equal(expected, actual) — fails the test if they differ.
+    - Reading a success body:
+          var body = await response.Content.ReadFromJsonAsync<TranscriptResponse>();
+          Assert.NotNull(body);
+          Assert.Equal("John Smith", body.ExtractedAttributes.Name);
+          Assert.Null(body.ExtractedAttributes.Email);   // missing = null!
+
+THE FULL TEST PLAN (from the team task list):
+    TEST 1  English normal text            -> 200, sensible result
+    TEST 2  Armenian normal text           -> 200, sensible result
+    TEST 3  Text with ALL five attributes  -> 200, all five filled
+    TEST 4  Text with missing attributes   -> 200, missing ones are null
+    TEST 5  Empty text                     -> 400
+    TEST 6  Wrong language code ("fr")     -> 400
+    TEST 7  Conversation WITH Agent:/Caller: labels -> roles match labels
+    TEST 8  Conversation WITHOUT labels    -> Agent/Caller alternating
+The 5 stubs cover tests 1,2,4,5,6 — ADD new [Fact] methods for 3,7,8
+(and any edge cases you find: the Armenian "։" character, mixed labels,
+exactly 50,000 chars — boundary! — and 50,001 chars).
+
+IMPORTANT DECISION — REAL AZURE OR FAKE?
+  Tests 1-4,7,8 need PII detection to work, which needs the real key.
+  Two valid strategies (discuss with the team):
+    a) REAL: set the key via user-secrets on your machine; tests hit real
+       Azure. Pros: tests the whole truth. Cons: needs internet + key,
+       uses free-tier quota, Azure results can vary slightly.
+    b) FAKE: replace IAzureLanguageService with a fake in tests using
+       factory.WithWebHostBuilder(b => b.ConfigureServices(s => ...)).
+       Pros: fast, free, deterministic. Cons: does not test real Azure.
+  Recommendation: validation tests (5,6) need neither; do role tests (7,8)
+  with strategy (b) if Azure is unavailable (roles do not need Azure
+  anyway); do at least TEST 1 and TEST 2 against REAL Azure once, manually
+  or automated, and record the outcome in TestResults.md.
+
+DOCUMENTS TO WRITE (in /docs, committed to your branch, PR to main):
+  1. docs/TestResults.md — a table: test name | input summary |
+     expected | actual | PASS/FAIL | notes. Plus a "What needs to be
+     fixed" section listing every failure with enough detail for the
+     responsible member to reproduce it.
+  2. docs/ApiDocumentation.md — for an OUTSIDE user of the API:
+     endpoint URL and method, request fields and their rules, all possible
+     status codes and when they happen, at least 2 full request/response
+     examples (one success, one error). You can start from the
+     "API contract" section of README.md and expand it.
+
+DEFINITION OF DONE:
+  - All 8+ tests implemented and passing (or failures documented).
+  - `dotnet test` output is clean and reproducible by any member.
+  - Both documents written and merged into /docs.
+
+=============================================================================
+ 10. HOW THE PARTS DEPEND ON EACH OTHER (who is blocked by whom)
+=============================================================================
+
+    Member 1 (DONE) ──> Member 2 needs IAzureLanguageService  (exists)
+                        Member 2 needs the REAL KEY to verify   (ask M1)
+    Member 3 depends on NOTHING — pure string logic, start now
+    Member 4 depends on the INTERFACES only (they exist) — can build
+             validation + error handling now; full happy path becomes
+             meaningful when M2+M3 merge
+    Member 5 validation tests (5,6) — after Member 4's validation
+             role tests (7,8)        — after Member 3
+             PII tests (1-4)         — after Members 2 and 4, needs key
+                                       (or a fake service)
+
+    Practical order of merging PRs into main:
+        M3 (no dependencies) -> M2 -> M4 -> M5
+    but everyone can DEVELOP in parallel — that is why the placeholders
+    and interfaces exist.
+
+=============================================================================
+ 11. COMMON MISTAKES TO AVOID
+=============================================================================
+
+  - Committing the real Azure key. NEVER. It goes in user-secrets only
+    (NAVIGATION.txt "AZURE KEY SETUP"). If it happens: tell Member 1
+    immediately -> regenerate the key in Azure Portal. (Removing it with
+    a new commit is NOT enough — it stays in git history.)
+  - Editing /Models without telling the team — you will silently break
+    someone else's code or tests.
+  - Creating your own TextAnalyticsClient somewhere. All Azure access
+    goes through AzureLanguageService.
+  - Returning "" or "N/A" instead of null for missing attributes.
+  - Catching exceptions in services and returning fake "empty" results —
+    that hides real failures; let the controller translate errors.
+  - Working directly on main instead of your F_task2/... branch.
+  - Pushing code that does not compile. Rule: `dotnet build` must succeed
+    before every push. (`dotnet test` should stay green too.)
+  - Forgetting `await` (compiler warns: "call is not awaited") — the call
+    would run in the background and your result would be wrong.
+  - Testing Armenian by machine-translating English samples — ask a
+    native speaker (we have them!) to write natural dialogue samples.
+
+=============================================================================
+ 12. QUICK REFERENCE CARD
+=============================================================================
+
+  Run the API:            dotnet run          (then open /swagger)
+  Build only:             dotnet build
+  Run tests:              dotnet test
+  Set the key (once):     see NAVIGATION.txt "AZURE KEY SETUP"
+  Endpoint:               POST /api/transcript/analyze
+  Languages:              "en", "hy"
+  Max text length:        50,000 characters
+  Missing attribute:      null
+  Roles:                  "Agent"/"Caller", fallback "Speaker 1"/"Speaker 2"
+  Repo:                   https://github.com/ArayikK/azure-transcript-analysis
+  Your branch:            F_task2/member<N>-...
+  Who owns what:          NAVIGATION.txt (short) / this file (detailed)
+  Project overview:       README.md
+
+=============================================================================
+ END OF EXPLAIN.TXT — questions? Ask in the team chat, or read the
+ class-level comments in the code: every file explains itself too.
+=============================================================================
