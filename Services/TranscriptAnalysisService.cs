@@ -58,47 +58,47 @@ public class TranscriptAnalysisService : ITranscriptAnalysisService
             if (entity.ConfidenceScore < 0.5)
                 continue;
 
-            switch (entity.Category)
+            string category = entity.Category.ToString();
+
+            if (category == "Person")
             {
-                case PiiEntityCategory.Person:
-                    if (entity.ConfidenceScore > personConfidence)
-                    {
-                        personConfidence = entity.ConfidenceScore;
-                        result.Name = entity.Text;
-                    }
-                    break;
-
-                case PiiEntityCategory.Address:
-                    if (entity.ConfidenceScore > addressConfidence)
-                    {
-                        addressConfidence = entity.ConfidenceScore;
-                        result.Address = entity.Text;
-                    }
-                    break;
-
-                case PiiEntityCategory.USSocialSecurityNumber:
-                    if (entity.ConfidenceScore > ssnConfidence)
-                    {
-                        ssnConfidence = entity.ConfidenceScore;
-                        result.SocialSecurityNumber = entity.Text;
-                    }
-                    break;
-
-                case PiiEntityCategory.PhoneNumber:
-                    if (entity.ConfidenceScore > phoneConfidence)
-                    {
-                        phoneConfidence = entity.ConfidenceScore;
-                        result.PhoneNumber = entity.Text;
-                    }
-                    break;
-
-                case PiiEntityCategory.Email:
-                    if (entity.ConfidenceScore > emailConfidence)
-                    {
-                        emailConfidence = entity.ConfidenceScore;
-                        result.Email = entity.Text;
-                    }
-                    break;
+                if (entity.ConfidenceScore > personConfidence)
+                {
+                    personConfidence = entity.ConfidenceScore;
+                    result.Name = entity.Text;
+                }
+            }
+            else if (category == "Address")
+            {
+                if (entity.ConfidenceScore > addressConfidence)
+                {
+                    addressConfidence = entity.ConfidenceScore;
+                    result.Address = entity.Text;
+                }
+            }
+            else if (category == "USSocialSecurityNumber")
+            {
+                if (entity.ConfidenceScore > ssnConfidence)
+                {
+                    ssnConfidence = entity.ConfidenceScore;
+                    result.SocialSecurityNumber = entity.Text;
+                }
+            }
+            else if (category == "PhoneNumber")
+            {
+                if (entity.ConfidenceScore > phoneConfidence)
+                {
+                    phoneConfidence = entity.ConfidenceScore;
+                    result.PhoneNumber = entity.Text;
+                }
+            }
+            else if (category == "Email")
+            {
+                if (entity.ConfidenceScore > emailConfidence)
+                {
+                    emailConfidence = entity.ConfidenceScore;
+                    result.Email = entity.Text;
+                }
             }
         }
 
