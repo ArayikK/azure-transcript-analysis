@@ -1,0 +1,232 @@
+=====================================================================
+ TEST TRANSCRIPTS — realistic two-speaker conversations, UNLABELED
+=====================================================================
+How to use: open http://localhost:3000, pick the matching language
+(English section -> "en", Armenian section -> "hy"), paste ONE whole
+example (all its lines together) into the transcript box, click
+Analyze.
+
+Format of every example below:
+  - TWO speakers (an operator and a caller), but NEITHER is labeled
+    ("Agent:" / "Caller:" do NOT appear anywhere) — exactly like a
+    real transcript with no diarization tags.
+  - One utterance per line. This is what lets the backend's fallback
+    logic alternate roles correctly (first line = Agent, then it
+    alternates) even though nothing in the text says who is who.
+  - The personal info is NOT dumped in one sentence anymore — it's
+    spread across several of the caller's separate answers, which is
+    how a real call actually unfolds (name in one answer, address in
+    another, phone in another, etc.).
+  - Not every conversation reveals every attribute — some are missing
+    a phone, or an SSN, etc., on purpose, to also check that missing
+    attributes correctly come back as null instead of being guessed.
+
+---------------------------------------------------------------------
+ ENGLISH (language: en)
+---------------------------------------------------------------------
+
+1) Billing address update — name, address, phone, email
+Thank you for calling customer support, how can I help you today?
+Hi, I recently moved and need to update my billing address on file.
+Sure, can I get your full name first?
+My name is Sarah Johnson.
+Thanks Sarah, and what's your new address?
+I'm now living at 482 Oakwood Avenue in Denver.
+Got it, and a phone number in case we need to reach you?
+You can reach me at 720-555-0198.
+Perfect, is there an email as well?
+Yes, it's sarah.johnson82@gmail.com.
+
+2) Account recovery — name, SSN, phone
+Good morning, thank you for calling account services, how may I assist?
+Hi, I'm locked out of my account and need help verifying my identity.
+No problem, could you tell me your name please?
+My name is Michael Torres.
+Thank you, and for verification could you provide your social security number?
+Sure, it's 231-64-8890.
+And do we have the correct phone number on file?
+It should be 312-555-7734.
+Great, that matches what we have, give me one moment.
+
+3) Billing dispute — name, address
+Hello, thanks for calling, what can I do for you today?
+I wanted to report a problem with my last invoice.
+I'm sorry to hear that, could I get your name?
+It's Emily Carter.
+And your address so I can pull up the account?
+I live at 15 Birchwood Lane, Apartment 3B, in Austin Texas.
+Thank you, let me take a look at that invoice now.
+
+4) Login trouble — phone, email only
+Hi, this is technical support, how can I help?
+I can't log into my account and it's really frustrating.
+I understand, let's get this sorted, what's the best number to reach you?
+You can reach me at 646-555-2201.
+And an email in case we get disconnected?
+Sure, it's contact.helpdesk99@yahoo.com.
+Perfect, let's try resetting your password now.
+
+5) Insurance claim — name, address, phone, email, SSN
+Thank you for calling claims, how can I help you today?
+I need to file a claim, a storm damaged my roof last week.
+I'm sorry to hear that, can I get your full name?
+Robert Klein.
+And where is the property located?
+907 Maple Street in Columbus Ohio.
+Understood, what's a good phone number for you?
+614-555-3382.
+And an email address as well?
+rklein.insurance@outlook.com.
+Last thing, I'll need your social security number to open the claim.
+It's 502-13-7765.
+
+6) Order status — name only
+Hello, thanks for calling, how can I help?
+I'm calling about my recent order, I never got a confirmation email.
+I can check that for you, what's your name please?
+David Nguyen.
+Thanks David, give me a moment to look that up.
+
+7) Address + phone change
+Good afternoon, how can I assist you today?
+I recently relocated and need my mailing address updated.
+Sure, what's your new address?
+220 Ridgeview Court in Portland Oregon.
+And is your phone number changing as well?
+Yes, it's now 503-555-9012.
+Great, I've made a note to update both.
+
+8) Identity verification — email, SSN
+Hello, this is account security, how can I help?
+I need to verify my identity to unlock a feature.
+Of course, can I get an email on file first?
+jharris.contact@gmail.com.
+And your social security number for verification?
+118-92-4456.
+Thank you, that's confirmed on our end.
+
+9) Delivery issue — name, address, phone
+Hi, thank you for calling, what seems to be the issue?
+My package never arrived and I need this resolved quickly.
+I understand, may I have your name?
+Linda Martinez.
+And the delivery address?
+76 Sunset Boulevard in Miami Florida.
+And a contact number in case the courier needs it?
+305-555-6647.
+Thank you, I'll escalate this right away.
+
+10) General question — name only, low PII
+Good morning, how can I help you today?
+Hi, I just had a quick question about your return policy.
+Happy to help, may I get your name for our records?
+James Wilson.
+Thanks James, go ahead with your question.
+Can I return an item after 30 days if it's unused?
+Let me check that policy for you.
+
+---------------------------------------------------------------------
+ ARMENIAN (language: hy)
+---------------------------------------------------------------------
+(Note: no Armenian national-ID/SSN numbers are used — the research
+phase found Azure has no Armenian government-ID entity category, so
+that field would not extract correctly anyway. See
+docs/Azure_PII_NER_Endpoint_Research.md.)
+
+1) Հասցեի թարմացում — անուն, հասցե, հեռախոս, էլ. փոստ
+Ողջույն, շնորհակալություն Ձեզ, ինչո՞վ կարող եմ օգնել։
+Բարև, ես վերջերս տեղափոխվել եմ և ուզում եմ թարմացնել իմ հասցեն։
+Իհարկե, կարո՞ղ եք ասել Ձեր անունը։
+Իմ անունը Անի Հակոբյան է։
+Շնորհակալություն, իսկ նոր հասցեն ո՞րն է։
+Ես այժմ բնակվում եմ Երևանում, Կոմիտասի պողոտա 14։
+Իսկ հեռախոսահամարը, եթե անհրաժեշտ լինի կապ հաստատել։
+Իմ հեռախոսահամարն է 093-456789։
+Իսկ էլ. փոստ ունե՞ք։
+Այո, ani.hakobyan@gmail.com։
+
+2) Վճարման հարց — անուն, հեռախոս
+Բարև ձեզ, ինչպե՞ս կարող եմ օգնել։
+Ողջույն, ես հարց ունեմ իմ վերջին վճարման վերաբերյալ։
+Իհարկե, կարո՞ղ եք ասել Ձեր անունը։
+Դավիթ Սարգսյան։
+Իսկ հեռախոսահամարը, որով կապվենք Ձեզ հետ։
+077-112233։
+Շնորհակալություն, մի պահ սպասեք։
+
+3) Առաքման խնդիր — անուն, հասցե, հեռախոս
+Ողջույն, ինչո՞վ կարող եմ օգնել այսօր։
+Իմ ապրանքը դեռ չի հասել, ուզում եմ բողոք գրանցել։
+Հասկանում եմ, ասացե՛ք Ձեր անունը։
+Մարիամ Պետրոսյան։
+Իսկ առաքման հասցեն ո՞րն է։
+Ես բնակվում եմ Գյումրիում, Շիրակի փողոց 22։
+Իսկ կապի հեռախոսահամարը։
+091-334455։
+Շնորհակալություն, հիմա ստուգելու եմ։
+
+4) Հաշվի կարգավիճակ — էլ. փոստ, հեռախոս
+Ողջույն, ինչպե՞ս կարող եմ օգնել։
+Ուզում եմ ստուգել իմ հաշվի կարգավիճակը։
+Իհարկե, կարո՞ղ եք տրամադրել Ձեր էլ. փոստը։
+vardan.contact@mail.ru։
+Իսկ հեռախոսահամարը հաստատման համար։
+099-887766։
+Շնորհակալություն, մի պահ սպասեք խնդրում եմ։
+
+5) Բողոք — անուն, հասցե, հեռախոս
+Բարի օր, ինչո՞վ կարող եմ օգնել։
+Ես ուզում եմ գրանցել բողոք սպասարկման վերաբերյալ։
+Հասկանում եմ, ասացե՛ք Ձեր անունը։
+Գևորգ Ավետիսյան։
+Իսկ հասցեն որտե՞ղ է։
+Աբովյան քաղաք, Երևանյան փողոց 5։
+Իսկ հեռախոսահամարը։
+093-221144։
+Շնորհակալություն, կփոխանցեմ պատասխանատու բաժին։
+
+6) Ապահովագրական դիմում — անուն, հասցե, հեռախոս, էլ. փոստ
+Ողջույն, ապահովագրական բաժինն է, ինչո՞վ կարող եմ օգնել։
+Ուզում եմ դիմում ներկայացնել վնասի համար։
+Իհարկե, ասացե՛ք Ձեր անունը։
+Լիլիթ Մկրտչյան։
+Իսկ որտե՞ղ եք բնակվում։
+Վանաձորում, Տիգրան Մեծի փողոց 9։
+Իսկ կապի հեռախոսահամարը։
+094-556677։
+Իսկ էլ. փոստը։
+lilit.mkrtchyan@yahoo.com։
+Շնորհակալություն, կսկսենք դիմումի ձևակերպումը։
+
+7) Ընդհանուր հարց — միայն անուն
+Ողջույն, ինչո՞վ կարող եմ օգնել Ձեզ այսօր։
+Բարև, ես պարզապես հարց ունեմ ձեր ծառայությունների վերաբերյալ։
+Իհարկե, ասացե՛ք Ձեր անունը, խնդրեմ։
+Արսեն Ղազարյան։
+Շնորհակալություն Արսեն, լսում եմ Ձեզ։
+
+8) Հեռախոսահամարի փոփոխություն — անուն, հեռախոս
+Բարև ձեզ, ինչպե՞ս կարող եմ օգնել։
+Ուզում եմ փոխել իմ հեռախոսահամարը հաշվում։
+Իհարկե, ասացե՛ք Ձեր անունը։
+Սոնա Դավթյան։
+Իսկ նոր հեռախոսահամարը որքա՞ն է։
+095-778899։
+Շնորհակալություն, թարմացնում եմ հիմա։
+
+9) Պատվերի խնդիր — հասցե, հեռախոս
+Բարի երեկո, ինչո՞վ կարող եմ օգնել։
+Ունեմ խնդիր վերջին պատվերի հետ կապված։
+Հասկանում եմ, որտե՞ղ եք բնակվում։
+Երևանում, Սայաթ-Նովայի պողոտա 33։
+Իսկ հեռախոսահամարը։
+077-990011։
+Շնորհակալություն, ստուգելու եմ պատվերի կարգավիճակը։
+
+10) Բաժանորդագրության հարց — միայն էլ. փոստ
+Ողջույն, ինչո՞վ կարող եմ օգնել այսօր։
+Ուզում եմ պարզել իմ բաժանորդագրության մասին։
+Իհարկե, կարո՞ղ եք տրամադրել Ձեր էլ. փոստը։
+narek.support@gmail.com։
+Շնորհակալություն, մի պահ սպասեք։
+=====================================================================

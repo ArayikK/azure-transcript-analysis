@@ -1,0 +1,297 @@
+=====================================================================
+ FRONTEND — WHERE IT IS, HOW TO RUN IT, AND WHAT EVERY PIECE MEANS
+ Project: Task_2_TranscriptAnalysis
+=====================================================================
+This file exists because the tech stack list you gave me (React, antd,
+React Query, etc.) was full of names you'd never seen before. Every
+section below explains ONE of those names in plain language, then
+points at the exact file in THIS project where you can see it in use.
+
+---------------------------------------------------------------------
+ 1. WHERE IS THE FRONTEND?
+---------------------------------------------------------------------
+ Folder:  frontend/   (a sibling of Controllers/, Services/, Models/
+                        at the repo root)
+
+ Structure:
+   frontend/
+     src/
+       api/            -> talks to the backend (HTTP calls)
+       components/     -> reusable pieces of UI (form, chat bubbles, card)
+       pages/          -> one file per screen/route
+       hooks/          -> reusable logic (data fetching)
+       storage/        -> saves analysis history in the browser
+       types.ts        -> shared TypeScript type definitions
+       App.tsx         -> defines the 3 pages/routes
+       main.tsx        -> the actual entry point (renders App into the page)
+     package.json      -> the list of dependencies + npm scripts
+     vite.config.ts    -> dev server settings (runs on port 3000)
+     eslint.config.js, .prettierrc.json -> code-quality tool settings
+
+ It is a completely separate application from the backend. The backend
+ (ASP.NET Core, port 5266) only answers API requests — it has no web
+ pages of its own (other than /swagger). The frontend is the actual
+ website a human opens in a browser; it calls the backend's API to do
+ its work.
+
+---------------------------------------------------------------------
+ 2. HOW TO RUN IT (do this every time you want to see it working)
+---------------------------------------------------------------------
+ You need TWO things running at once, in TWO separate terminals:
+
+ Terminal 1 — the backend (from the repo root, where the .csproj is):
+   dotnet run
+   -> starts the API at http://localhost:5266
+   -> (Azure key is already configured on this machine via
+      `dotnet user-secrets` — nothing to do there)
+
+ Terminal 2 — the frontend (from the frontend/ folder):
+   cd frontend
+   npm run dev
+   -> starts a dev server at http://localhost:3000
+   -> Vite prints the exact URL in the terminal; open it in your browser
+
+ Open http://localhost:3000 in a browser. You should see "New
+ Transcription" — paste a transcript, pick a language, click Analyze.
+ The frontend calls the backend at localhost:5266 automatically (that
+ address is set in frontend/.env.example / frontend/src/api/client.ts).
+
+ If port 3000 or 5266 is already busy, Vite/dotnet will print an error
+ telling you so — close whatever else is using that port, or change
+ the port in vite.config.ts / Properties/launchSettings.json.
+
+ Other useful commands (run from inside frontend/):
+   npm run build     -> checks types and produces a production build in dist/
+   npm run lint      -> checks the code for likely bugs / bad patterns
+   npm run format    -> auto-fixes code style (spacing, quotes, etc.)
+
+---------------------------------------------------------------------
+ 3. THE BIG PICTURE — why so many different tools?
+---------------------------------------------------------------------
+ A modern frontend isn't one tool, it's several small tools each
+ solving ONE problem:
+   - How do I build reusable UI pieces?               -> React
+   - How do I catch typos/type errors before running?  -> TypeScript
+   - How do I turn my code into something a browser
+     can actually load fast?                            -> Vite
+   - Where do the buttons/forms/tables come from so I
+     don't draw every pixel by hand?                    -> Ant Design
+   - How do I add a few custom styles Ant Design
+     doesn't provide (e.g. chat bubbles)?                -> Emotion
+   - How do I format dates nicely?                      -> Dayjs
+   - How do I have multiple "pages" in what is
+     actually a single HTML file?                        -> React Router
+   - How do I call the backend API and not refetch
+     data over and over needlessly?                      -> React Query
+   - How do I actually send the HTTP request?            -> Axios
+   - How do I build a form with validation
+     (required fields, max length, etc.)?                -> React Hook Form + Yup
+   - How do I keep code style consistent across
+     the team automatically?                             -> ESLint + Prettier + Husky
+
+ Each is explained in detail below.
+
+---------------------------------------------------------------------
+ 4. CORE
+---------------------------------------------------------------------
+
+ REACT (version 19 here; you listed "18+")
+ ------------------------------------------
+ What it is: a JavaScript library for building user interfaces out of
+ small, reusable pieces called "components". A component is just a
+ function that returns what should appear on screen (written in a
+ mix of JS + HTML-like syntax called JSX).
+
+ Example from this project (frontend/src/components/AttributesCard.tsx):
+   function AttributesCard({ attributes }) {
+     return <Card title="Extracted attributes">...</Card>;
+   }
+ This is a component. It's reused on both the "New Transcription" page
+ and the "History Details" page — write once, use everywhere.
+
+ "Hooks" (functions starting with `use`, e.g. useState, useForm,
+ useQuery) are React's way of adding behavior (state, data-fetching,
+ form logic) to a component without writing a class. You'll see `use*`
+ everywhere in this codebase — that's always a hook.
+
+ TYPESCRIPT
+ ------------------------------------------
+ What it is: JavaScript with type-checking added. You describe the
+ *shape* of your data (e.g. "an ExtractedAttributes object always has
+ a name field that is a string or null"), and the TypeScript compiler
+ warns you at write-time if you use it wrong — before you ever run
+ the code. This is the .ts / .tsx file extension you see everywhere.
+
+ See frontend/src/types.ts — every shape of data exchanged with the
+ backend (AnalyzeRequest, ExtractedAttributes, etc.) is defined once
+ there, and TypeScript enforces it everywhere else in the app.
+
+ VITE
+ ------------------------------------------
+ What it is: the "build tool" / dev server. Browsers can't run
+ TypeScript or JSX directly — someone has to translate (compile) it
+ into plain JavaScript. Vite does that translation instantly while you
+ develop (so the browser refreshes the moment you save a file), and
+ also produces the final optimized files for production
+ (`npm run build` -> the frontend/dist folder).
+ Config file: frontend/vite.config.ts.
+
+---------------------------------------------------------------------
+ 5. UI (what you actually see on screen)
+---------------------------------------------------------------------
+
+ ANT DESIGN (antd)
+ ------------------------------------------
+ What it is: a ready-made library of UI components — buttons, forms,
+ tables, cards, alerts, dropdowns — all already styled and accessible,
+ so you don't design and build each one from scratch. It's like using
+ pre-made furniture instead of building every chair yourself.
+ Used throughout — e.g. <Card>, <Button>, <Select>, <Form> in
+ frontend/src/components/TranscriptForm.tsx.
+
+ @EMOTION/STYLED
+ ------------------------------------------
+ What it is: a way to write custom CSS directly inside a component,
+ for the specific cases Ant Design doesn't cover out of the box (here:
+ the left/right chat bubbles in the conversation view). You write:
+   const Bubble = styled.div`
+     background: blue;
+   `;
+ ...and `<Bubble>` becomes a real HTML element with that CSS attached.
+ See frontend/src/components/ConversationView.tsx.
+
+ DAYJS
+ ------------------------------------------
+ What it is: a small library for formatting dates/times nicely
+ (e.g. turning a raw timestamp into "Jul 12, 2026 14:30"). Used on the
+ History page and Details page to show when each analysis was run.
+ It's a dependency of Ant Design anyway, so it was already available.
+
+---------------------------------------------------------------------
+ 6. ROUTING (multiple "pages" in one app)
+---------------------------------------------------------------------
+
+ REACT ROUTER (v6)
+ ------------------------------------------
+ What it is: a website built with React is usually a "Single Page
+ Application" (SPA) — the browser loads ONE html file, and React
+ Router just swaps out what's on screen when the URL changes, without
+ a full page reload. It maps a URL path to a component:
+   "/"                    -> NewTranscriptionPage
+   "/history"              -> HistoryPage
+   "/transcription/:id"    -> TranscriptionDetailsPage  (:id = a variable
+                              part of the URL, e.g. /transcription/abc123)
+ See frontend/src/App.tsx for exactly this mapping.
+
+---------------------------------------------------------------------
+ 7. DATA / STATE (talking to the backend, remembering results)
+---------------------------------------------------------------------
+
+ REACT QUERY (TanStack Query)
+ ------------------------------------------
+ What it is: a library that manages "server state" — data that lives
+ on the backend, not in your own app. Instead of manually writing
+ loading/error/success flags for every API call, you describe HOW to
+ fetch data and React Query handles caching, loading states, and
+ re-fetching automatically.
+   - useQuery   = "GET data and keep it up to date"
+     (used for History list + one saved analysis — see
+      frontend/src/hooks/useTranscripts.ts: useHistory, useHistoryItem)
+   - useMutation = "send data that CHANGES something" (here: submitting
+     a transcript for analysis — see useAnalyze in the same file)
+
+ AXIOS
+ ------------------------------------------
+ What it is: the actual tool that sends the HTTP request over the
+ network (the "POST /api/transcript/analyze" call). React Query
+ decides WHEN to call the backend; Axios is HOW the call is physically
+ made and how the response/error comes back.
+ See frontend/src/api/client.ts — one shared Axios instance, configured
+ with the backend's URL and a helper that turns error responses into a
+ readable message.
+
+---------------------------------------------------------------------
+ 8. FORMS / VALIDATION
+---------------------------------------------------------------------
+
+ REACT HOOK FORM
+ ------------------------------------------
+ What it is: manages a form's state (what the user typed, which field
+ has an error, is the form submitting right now) without re-rendering
+ the whole page on every keystroke — good for performance and for
+ easy validation wiring.
+
+ YUP
+ ------------------------------------------
+ What it is: a "schema validation" library — you describe the RULES a
+ piece of data must follow ("transcriptText is required, max 50,000
+ characters", "language must be 'en' or 'hy'"), and Yup checks the
+ form data against those rules and produces error messages.
+ Together, React Hook Form + Yup means: the moment you click Analyze,
+ the SAME rules the backend enforces are checked instantly in the
+ browser, so users get immediate feedback instead of waiting for a
+ server round-trip to find out they left the transcript empty.
+ See frontend/src/components/TranscriptForm.tsx — the `schema` object
+ near the top is the Yup rules; `useForm({ resolver: yupResolver(schema) })`
+ is where React Hook Form applies them.
+
+---------------------------------------------------------------------
+ 9. DEV TOOLING (keeps the code clean, not user-facing)
+---------------------------------------------------------------------
+
+ ESLINT
+ ------------------------------------------
+ What it is: a "linter" — it reads your code (without running it) and
+ flags likely mistakes and bad patterns (unused variables, missing
+ dependencies in a hook, etc.). Run it with `npm run lint`.
+ Config: frontend/eslint.config.js.
+
+ PRETTIER
+ ------------------------------------------
+ What it is: an auto-formatter — it doesn't check for bugs, only for
+ STYLE (spacing, quotes, line length) and rewrites the file to match
+ one consistent style automatically, so nobody argues about
+ tabs-vs-spaces in code review. Run it with `npm run format`.
+ Config: frontend/.prettierrc.json.
+
+ HUSKY + LINT-STAGED (pre-commit hooks)
+ ------------------------------------------
+ What it is: Git lets you attach scripts that run automatically at
+ certain moments — e.g. right before a commit is created ("pre-commit
+ hook"). Husky is the tool that installs such a script; lint-staged
+ makes it run ESLint + Prettier ONLY on the files you're about to
+ commit (not the whole project, which would be slow).
+ Practically: every time you run `git commit`, ESLint/Prettier run
+ automatically first. If they find something they can auto-fix, they
+ fix it and include the fix in your commit; if there's a real error,
+ the commit is blocked until you fix it.
+ Because the frontend lives in frontend/ and not at the repo root, the
+ actual hook file is at .husky/pre-commit (repo root) and it just `cd
+ frontend`s before running — a quirk of this repo's folder layout, not
+ of Husky itself.
+
+---------------------------------------------------------------------
+ 10. QUICK GLOSSARY (words used above, defined in one line each)
+---------------------------------------------------------------------
+ npm            - Node Package Manager; installs/manages the libraries
+                  listed in package.json (like NuGet, but for JS).
+ package.json   - the manifest listing dependencies + npm scripts
+                  (dev/build/lint/format) for a JS project.
+ node_modules/  - where npm downloads all those libraries to; never
+                  committed to git (it's rebuilt from package.json).
+ dependency     - a library your code relies on (e.g. React, Axios).
+ bundler        - a tool that combines many small JS/CSS files into
+                  the few files a browser actually downloads (Vite
+                  does this).
+ SPA            - "Single Page Application": one HTML page whose
+                  content is swapped by JavaScript instead of the
+                  browser loading a new page from the server each time.
+ component      - a reusable, self-contained piece of UI in React.
+ hook           - a React function (name starts with `use`) that adds
+                  behavior — state, data fetching, form handling — to
+                  a component.
+ API / endpoint - the backend's URL(s) that the frontend calls to get
+                  or send data (here: POST /api/transcript/analyze).
+ schema (Yup)   - a description of what "valid data" looks like, used
+                  to validate form input.
+=====================================================================
