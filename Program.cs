@@ -26,7 +26,7 @@ builder.Services.AddSwaggerGen();           // Swagger UI for manual testing in 
 builder.Services.AddSingleton<IAzureLanguageService, AzureLanguageService>(); // Member 1: Azure connection
 builder.Services.AddScoped<ITranscriptAnalysisService, TranscriptAnalysisService>(); // Member 2: PII extraction
 builder.Services.AddScoped<ISpeakerRoleService, SpeakerRoleService>();               // Member 3: speaker roles
-
+builder.Services.AddSingleton<IAzureOpenAIService, AzureOpenAIService>();
 var app = builder.Build();
 
 // ---------------------------------------------------------------------------

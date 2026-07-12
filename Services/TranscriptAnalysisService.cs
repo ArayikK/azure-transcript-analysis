@@ -21,33 +21,7 @@ public interface ITranscriptAnalysisService
 /// <summary>
 /// OWNER: Member 2
 ///
-/// TODO (Member 2): Create extraction logic for:
-///   - Person (name)
-///   - Address
-///   - USSocialSecurityNumber
-///   - PhoneNumber
-///   - Email
-/// Return the ExtractedAttributes model.
-///
-/// Suggested steps:
-///   1. Call _azureLanguageService.AnalyzeText(transcriptText, language).
-///      It returns a PiiEntityCollection — a list of entities Azure found.
-///   2. Loop over the entities. Each entity has:
-///        entity.Text            -> the value found (e.g. "John Smith")
-///        entity.Category        -> the type (e.g. PiiEntityCategory.Person)
-///        entity.ConfidenceScore -> how sure Azure is (0.0 to 1.0)
-///   3. Map each category to the matching ExtractedAttributes property:
-///        PiiEntityCategory.Person                 -> result.Name
-///        PiiEntityCategory.Address                -> result.Address
-///        PiiEntityCategory.USSocialSecurityNumber -> result.SocialSecurityNumber
-///        PiiEntityCategory.PhoneNumber            -> result.PhoneNumber
-///        PiiEntityCategory.Email                  -> result.Email
-///   4. If Azure finds several entities of the same category, keep the one
-///      with the highest ConfidenceScore (or the first one — team decision).
-///   5. If a category is not found at all, leave the property null.
-///
-/// Tip: consider ignoring entities with a very low confidence score
-/// (e.g. below 0.5) to reduce false positives.
+/// Extracts business attributes from Azure AI Language Service PII results.
 /// </summary>
 public class TranscriptAnalysisService : ITranscriptAnalysisService
 {
@@ -65,12 +39,69 @@ public class TranscriptAnalysisService : ITranscriptAnalysisService
     /// <inheritdoc />
     public async Task<ExtractedAttributes> ExtractAttributes(string transcriptText, string language)
     {
-        // TODO (Member 2): replace this placeholder with the real logic
-        // described in the class comment above.
+        // Call Azure AI Language Service to detect PII entities.
+        PiiEntityCollection entities =
+            await _azureLanguageService.AnalyzeText(transcriptText, language);
 
-        // Placeholder so the project compiles and runs:
-        // currently returns an empty result (all attributes null).
-        await Task.CompletedTask; // remove this line once you call Azure for real
-        return new ExtractedAttributes();
+        var result = new ExtractedAttributes();
+
+        // Keep the highest-confidence entity for each category.
+        double personConfidence = 0;
+        double addressConfidence = 0;
+        double ssnConfidence = 0;
+        double phoneConfidence = 0;
+        double emailConfidence = 0;
+
+        foreach (var entity in entities)
+        {
+            // Ignore low-confidence detections.
+            if (entity.ConfidenceScore < 0.5)
+                continue;
+
+            string category = entity.Category.ToString();
+
+            if (category == "Person")
+            {
+                if (entity.ConfidenceScore > personConfidence)
+                {
+                    personConfidence = entity.ConfidenceScore;
+                    result.Name = entity.Text;
+                }
+            }
+            else if (category == "Address")
+            {
+                if (entity.ConfidenceScore > addressConfidence)
+                {
+                    addressConfidence = entity.ConfidenceScore;
+                    result.Address = entity.Text;
+                }
+            }
+            else if (category == "USSocialSecurityNumber")
+            {
+                if (entity.ConfidenceScore > ssnConfidence)
+                {
+                    ssnConfidence = entity.ConfidenceScore;
+                    result.SocialSecurityNumber = entity.Text;
+                }
+            }
+            else if (category == "PhoneNumber")
+            {
+                if (entity.ConfidenceScore > phoneConfidence)
+                {
+                    phoneConfidence = entity.ConfidenceScore;
+                    result.PhoneNumber = entity.Text;
+                }
+            }
+            else if (category == "Email")
+            {
+                if (entity.ConfidenceScore > emailConfidence)
+                {
+                    emailConfidence = entity.ConfidenceScore;
+                    result.Email = entity.Text;
+                }
+            }
+        }
+
+        return result;
     }
 }
