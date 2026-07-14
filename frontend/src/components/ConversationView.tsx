@@ -40,25 +40,25 @@ const Bubble = styled.div<{ right: boolean }>`
 `;
 
 function speaksFromRight(role: string): boolean {
-  const normalized = role.trim().toLowerCase();
-  return normalized === 'caller' || normalized === 'speaker 2';
+    const normalized = role.trim().toLowerCase();
+    return normalized === 'caller' || normalized === 'speaker 2';
 }
 
 export function ConversationView({ conversation }: { conversation: ConversationTurn[] }) {
-  if (conversation.length === 0) {
-    return <Empty description="No conversation turns" />;
-  }
-  return (
-    <List>
-      {conversation.map((turn, index) => {
-        const right = speaksFromRight(turn.role);
-        return (
-          <Row key={index} right={right}>
-            <RoleLabel>{turn.role}</RoleLabel>
-            <Bubble right={right}>{turn.text}</Bubble>
-          </Row>
-        );
-      })}
-    </List>
-  );
+    if (conversation.length === 0) {
+        return <Empty description="No conversation turns" />;
+    }
+    return (
+        <List>
+            {conversation.map((turn, index) => {
+                const right = speaksFromRight(turn.role);
+                return (
+                    <Row key={index} right={right}>
+                        <RoleLabel>{turn.role}</RoleLabel>
+                        <Bubble right={right}>{turn.text}</Bubble>
+                    </Row>
+                );
+            })}
+        </List>
+    );
 }

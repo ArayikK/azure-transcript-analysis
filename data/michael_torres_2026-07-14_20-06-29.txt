@@ -1,0 +1,40 @@
+﻿=========================================
+      TRANSCRIPT ANALYSIS REPORT
+=========================================
+Date (UTC): 2026-07-14 20:06:29
+Language: English (en)
+
+-----------------------------------------
+          EXTRACTED ATTRIBUTES           
+-----------------------------------------
+Name: Michael Torres
+Phone: 312-555-7734
+Email: Not detected
+SSN: 231-64-8890
+Address: Not detected
+
+-----------------------------------------
+         DIALOGUE / CONVERSATION         
+-----------------------------------------
+[Agent]: Good morning, thank you for calling account services, how may I assist?
+[Caller]: Hi, I'm locked out of my account and need help verifying my identity.
+[Agent]: No problem, could you tell me your name please?
+[Caller]: My name is Michael Torres.
+[Agent]: Thank you, and for verification could you provide your social security number?
+[Caller]: Sure, it's 231-64-8890.
+[Agent]: And do we have the correct phone number on file?
+[Caller]: It should be 312-555-7734.
+[Agent]: Great, that matches what we have, give me one moment.
+
+-----------------------------------------
+            ORIGINAL TEXT                
+-----------------------------------------
+Good morning, thank you for calling account services, how may I assist?
+Hi, I'm locked out of my account and need help verifying my identity.
+No problem, could you tell me your name please?
+My name is Michael Torres.
+Thank you, and for verification could you provide your social security number?
+Sure, it's 231-64-8890.
+And do we have the correct phone number on file?
+It should be 312-555-7734.
+Great, that matches what we have, give me one moment.

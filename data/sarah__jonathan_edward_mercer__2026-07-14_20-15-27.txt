@@ -1,0 +1,56 @@
+﻿=========================================
+      TRANSCRIPT ANALYSIS REPORT
+=========================================
+Date (UTC): 2026-07-14 20:15:27
+Language: English (en)
+
+-----------------------------------------
+          EXTRACTED ATTRIBUTES           
+-----------------------------------------
+Name: Sarah, Jonathan Edward Mercer, Mercer
+Phone: 503-555-0192, 503-555-0147
+Email: jonny.m@oldworkplace.com, j.mercer90@gmail.com
+SSN: 453-88-2019
+Address: 842 West Oak Avenue, Apartment 3B, Portland, Oregon, 97201, 842 West Oak Avenue, Apartment 3B, Portland, Oregon
+
+-----------------------------------------
+         DIALOGUE / CONVERSATION         
+-----------------------------------------
+[Agent]: Thank you for calling Peak Horizon Insurance customer support. My name is Sarah, and I hope you are having a wonderful Tuesday so far. How can I assist you with your policy details or claims today?
+[Caller]: Hello, Sarah. Yes, I actually need some help. I’ve been trying to log into my online portal to download my insurance card for an upcoming trip, but the system keeps saying my account is locked, or maybe my details are outdated. I’m not really sure. I was told by the automated assistant that I should speak to a live agent to verify my identity and update everything on file.
+[Agent]: I’m so sorry to hear you're having trouble accessing your portal, but you've reached the right place! I can definitely help you unlock your account and update any outdated information right now. To get started, may I please have your full name as it appears on your insurance policy?
+[Caller]: Yes, of course. My name is Jonathan Edward Mercer. That's M-E-R-C-E-R.
+[Agent]: Thank you, Mr. Mercer. I have located your profile in our database. To proceed with unlocking the account, I just need to run through a quick security verification. Could you please provide the last four digits or the full Social Security Number associated with this policy?
+[Caller]: Sure, I can give you the full number to make it easier. It is 453-88-2019.
+[Agent]: Perfect, that matches our records. Now, to make sure we have your correct contact information updated, let’s verify your address. Is your physical address still the one in Seattle?
+[Caller]: Ah, actually, no! That’s probably why there’s an issue. I recently relocated because of my new job. My new primary address is 842 West Oak Avenue, Apartment 3B, Portland, Oregon, 97201.
+[Agent]: Got it. Let me update that right now in our system. I’ve changed your billing and primary address to 842 West Oak Avenue, Apartment 3B, Portland, Oregon. Now, what about your contact numbers? I currently see a landline listed here, but I’m assuming you might have a mobile number you prefer us to use?
+[Caller]: Yes, definitely. Please remove the old landline ending in 44. My primary mobile phone number is 503-555-0192. But you know what? Since I travel a lot for work, could you also put down my secondary business line just in case I don't have signal on my personal phone? That number is 503-555-0147.
+[Agent]: Absolutely, I have added both numbers to your file. I have set the personal mobile ending in 0192 as your primary contact. Now, let’s check the email address on file. Right now, it says jonny.m@oldworkplace.com. I assume we should change this to a personal one?
+[Caller]: Oh, yes, please! I don't have access to that old work email anymore. Please change it to my personal email, which is j.mercer90@gmail.com.
+[Agent]: Excellent. I have updated your email address to j.mercer90@gmail.com. I am now sending a temporary password and an account unlock link directly to this new email. Could you please check your inbox to see if you’ve received it?
+[Caller]: Let me refresh my inbox on my phone... Yes! I see the email from Peak Horizon. I will click the link and set up my new password right now. Thank you so much, Sarah. You've been extremely helpful and fast.
+[Agent]: You are very welcome, Mr. Mercer! Is there anything else I can assist you with today?
+[Caller]: No, that's all I needed. Have a great day!
+[Agent]: You too! Thank you for choosing Peak Horizon, goodbye.
+
+-----------------------------------------
+            ORIGINAL TEXT                
+-----------------------------------------
+Agent: Thank you for calling Peak Horizon Insurance customer support. My name is Sarah, and I hope you are having a wonderful Tuesday so far. How can I assist you with your policy details or claims today?
+Caller: Hello, Sarah. Yes, I actually need some help. I’ve been trying to log into my online portal to download my insurance card for an upcoming trip, but the system keeps saying my account is locked, or maybe my details are outdated. I’m not really sure. I was told by the automated assistant that I should speak to a live agent to verify my identity and update everything on file.
+Agent: I’m so sorry to hear you're having trouble accessing your portal, but you've reached the right place! I can definitely help you unlock your account and update any outdated information right now. To get started, may I please have your full name as it appears on your insurance policy?
+Caller: Yes, of course. My name is Jonathan Edward Mercer. That's M-E-R-C-E-R.
+Agent: Thank you, Mr. Mercer. I have located your profile in our database. To proceed with unlocking the account, I just need to run through a quick security verification. Could you please provide the last four digits or the full Social Security Number associated with this policy?
+Caller: Sure, I can give you the full number to make it easier. It is 453-88-2019.
+Agent: Perfect, that matches our records. Now, to make sure we have your correct contact information updated, let’s verify your address. Is your physical address still the one in Seattle?
+Caller: Ah, actually, no! That’s probably why there’s an issue. I recently relocated because of my new job. My new primary address is 842 West Oak Avenue, Apartment 3B, Portland, Oregon, 97201.
+Agent: Got it. Let me update that right now in our system. I’ve changed your billing and primary address to 842 West Oak Avenue, Apartment 3B, Portland, Oregon. Now, what about your contact numbers? I currently see a landline listed here, but I’m assuming you might have a mobile number you prefer us to use?
+Caller: Yes, definitely. Please remove the old landline ending in 44. My primary mobile phone number is 503-555-0192. But you know what? Since I travel a lot for work, could you also put down my secondary business line just in case I don't have signal on my personal phone? That number is 503-555-0147.
+Agent: Absolutely, I have added both numbers to your file. I have set the personal mobile ending in 0192 as your primary contact. Now, let’s check the email address on file. Right now, it says jonny.m@oldworkplace.com. I assume we should change this to a personal one?
+Caller: Oh, yes, please! I don't have access to that old work email anymore. Please change it to my personal email, which is j.mercer90@gmail.com.
+Agent: Excellent. I have updated your email address to j.mercer90@gmail.com. I am now sending a temporary password and an account unlock link directly to this new email. Could you please check your inbox to see if you’ve received it?
+Caller: Let me refresh my inbox on my phone... Yes! I see the email from Peak Horizon. I will click the link and set up my new password right now. Thank you so much, Sarah. You've been extremely helpful and fast.
+Agent: You are very welcome, Mr. Mercer! Is there anything else I can assist you with today?
+Caller: No, that's all I needed. Have a great day!
+Agent: You too! Thank you for choosing Peak Horizon, goodbye.

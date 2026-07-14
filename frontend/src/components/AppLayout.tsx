@@ -30,40 +30,40 @@ const Content = styled(Layout.Content)`
 
 /** Page frame: sticky header with navigation + centered content column. */
 export function AppLayout() {
-  const location = useLocation();
-  // Highlight "History" for both /history and /transcription/:id.
-  const selectedKey = location.pathname === '/' ? '/' : '/history';
+    const location = useLocation();
+    // Highlight "History" for both /history and /transcription/:id.
+    const selectedKey = location.pathname === '/' ? '/' : '/history';
 
-  return (
-    <Layout style={{ minHeight: '100vh', background: '#f5f6fa' }}>
-      <Header>
-        <Brand to="/">
-          <AudioOutlined style={{ fontSize: 22, color: '#2f54eb' }} />
-          <Typography.Text strong style={{ fontSize: 17 }}>
-            Transcript Analysis
-          </Typography.Text>
-        </Brand>
-        <Menu
-          mode="horizontal"
-          selectedKeys={[selectedKey]}
-          style={{ flex: 1, borderBottom: 'none' }}
-          items={[
-            {
-              key: '/',
-              icon: <PlusCircleOutlined />,
-              label: <Link to="/">New Transcription</Link>,
-            },
-            {
-              key: '/history',
-              icon: <HistoryOutlined />,
-              label: <Link to="/history">History</Link>,
-            },
-          ]}
-        />
-      </Header>
-      <Content>
-        <Outlet />
-      </Content>
-    </Layout>
-  );
+    return (
+        <Layout style={{ minHeight: '100vh', background: '#f5f6fa' }}>
+            <Header>
+                <Brand to="/">
+                    <AudioOutlined style={{ fontSize: 22, color: '#2f54eb' }} />
+                    <Typography.Text strong style={{ fontSize: 17 }}>
+                        Transcript Analysis
+                    </Typography.Text>
+                </Brand>
+                <Menu
+                    mode="horizontal"
+                    selectedKeys={[selectedKey]}
+                    style={{ flex: 1, borderBottom: 'none' }}
+                    items={[
+                        {
+                            key: '/',
+                            icon: <PlusCircleOutlined />,
+                            label: <Link to="/">New Transcription</Link>,
+                        },
+                        {
+                            key: '/history',
+                            icon: <HistoryOutlined />,
+                            label: <Link to="/history">History</Link>,
+                        },
+                    ]}
+                />
+            </Header>
+            <Content>
+                <Outlet />
+            </Content>
+        </Layout>
+    );
 }

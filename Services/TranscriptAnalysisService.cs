@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
 using Azure.AI.TextAnalytics;
 using Task_2_TranscriptAnalysis.Models;
 
@@ -56,14 +58,11 @@ public class TranscriptAnalysisService : ITranscriptAnalysisService
         List<PiiEntity> entities =
             await _azureLanguageService.AnalyzeText(transcriptText, language);
 
-        var result = new ExtractedAttributes();
-
-        // Keep the highest-confidence entity for each category.
-        double personConfidence = 0;
-        double addressConfidence = 0;
-        double ssnConfidence = 0;
-        double phoneConfidence = 0;
-        double emailConfidence = 0;
+        var names = new List<string>();
+        var addresses = new List<string>();
+        var ssns = new List<string>();
+        var phones = new List<string>();
+        var emails = new List<string>();
 
         foreach (var entity in entities)
         {
@@ -72,59 +71,64 @@ public class TranscriptAnalysisService : ITranscriptAnalysisService
                 continue;
 
             string category = entity.Category.ToString();
+            string text = entity.Text.Trim();
 
             if (category == "Person")
             {
-                if (entity.ConfidenceScore > personConfidence)
+                if (!names.Any(n => string.Equals(n, text, StringComparison.OrdinalIgnoreCase)))
                 {
-                    personConfidence = entity.ConfidenceScore;
-                    result.Name = entity.Text;
+                    names.Add(entity.Text);
                 }
             }
             else if (category == "Address")
             {
-                if (entity.ConfidenceScore > addressConfidence)
+                if (!addresses.Any(a => string.Equals(a, text, StringComparison.OrdinalIgnoreCase)))
                 {
-                    addressConfidence = entity.ConfidenceScore;
-                    result.Address = entity.Text;
+                    addresses.Add(entity.Text);
                 }
             }
             else if (category == "USSocialSecurityNumber")
             {
-                if (entity.ConfidenceScore > ssnConfidence)
+                if (!ssns.Any(s => string.Equals(s, text, StringComparison.OrdinalIgnoreCase)))
                 {
-                    ssnConfidence = entity.ConfidenceScore;
-                    result.SocialSecurityNumber = entity.Text;
+                    ssns.Add(text);
                 }
             }
             else if (category == "PhoneNumber")
             {
                 // SSN said alone in a line comes back as PhoneNumber (see
                 // class comment). Route XXX-XX-XXXX values to the SSN field.
-                if (SsnPattern.IsMatch(entity.Text.Trim()))
+                if (SsnPattern.IsMatch(text))
                 {
-                    if (entity.ConfidenceScore > ssnConfidence)
+                    if (!ssns.Any(s => string.Equals(s, text, StringComparison.OrdinalIgnoreCase)))
                     {
-                        ssnConfidence = entity.ConfidenceScore;
-                        result.SocialSecurityNumber = entity.Text.Trim();
+                        ssns.Add(text);
                     }
                 }
-                else if (entity.ConfidenceScore > phoneConfidence)
+                else
                 {
-                    phoneConfidence = entity.ConfidenceScore;
-                    result.PhoneNumber = entity.Text;
+                    if (!phones.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        phones.Add(entity.Text);
+                    }
                 }
             }
             else if (category == "Email")
             {
-                if (entity.ConfidenceScore > emailConfidence)
+                if (!emails.Any(e => string.Equals(e, text, StringComparison.OrdinalIgnoreCase)))
                 {
-                    emailConfidence = entity.ConfidenceScore;
-                    result.Email = entity.Text;
+                    emails.Add(entity.Text);
                 }
             }
         }
 
-        return result;
+        return new ExtractedAttributes
+        {
+            Name = names.Any() ? string.Join(", ", names) : null,
+            Address = addresses.Any() ? string.Join(", ", addresses) : null,
+            SocialSecurityNumber = ssns.Any() ? string.Join(", ", ssns) : null,
+            PhoneNumber = phones.Any() ? string.Join(", ", phones) : null,
+            Email = emails.Any() ? string.Join(", ", emails) : null
+        };
     }
 }

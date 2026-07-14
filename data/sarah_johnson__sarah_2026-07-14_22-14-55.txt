@@ -1,0 +1,42 @@
+﻿=========================================
+      TRANSCRIPT ANALYSIS REPORT
+=========================================
+Date (UTC): 2026-07-14 22:14:55
+Language: English (en)
+
+-----------------------------------------
+          EXTRACTED ATTRIBUTES           
+-----------------------------------------
+Name: Sarah Johnson, Sarah
+Phone: 720-555-0198
+Email: sarah.johnson82@gmail.com
+SSN: Not detected
+Address: 482 Oakwood Avenue
+
+-----------------------------------------
+         DIALOGUE / CONVERSATION         
+-----------------------------------------
+[Agent]: Thank you for calling customer support, how can I help you today?
+[Caller]: Hi, I recently moved and need to update my billing address on file.
+[Agent]: Sure, can I get your full name first?
+[Caller]: My name is Sarah Johnson.
+[Agent]: Thanks Sarah, and what's your new address?
+[Caller]: I'm now living at 482 Oakwood Avenue in Denver.
+[Agent]: Got it, and a phone number in case we need to reach you?
+[Caller]: You can reach me at 720-555-0198.
+[Agent]: Perfect, is there an email as well?
+[Caller]: Yes, it's sarah.johnson82@gmail.com.
+
+-----------------------------------------
+            ORIGINAL TEXT                
+-----------------------------------------
+Thank you for calling customer support, how can I help you today?
+Hi, I recently moved and need to update my billing address on file.
+Sure, can I get your full name first?
+My name is Sarah Johnson.
+Thanks Sarah, and what's your new address?
+I'm now living at 482 Oakwood Avenue in Denver.
+Got it, and a phone number in case we need to reach you?
+You can reach me at 720-555-0198.
+Perfect, is there an email as well?
+Yes, it's sarah.johnson82@gmail.com.

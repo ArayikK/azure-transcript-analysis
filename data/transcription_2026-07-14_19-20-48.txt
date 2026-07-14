@@ -1,0 +1,24 @@
+﻿=========================================
+      TRANSCRIPT ANALYSIS REPORT
+=========================================
+Date (UTC): 2026-07-14 19:20:48
+Language: English (en)
+
+-----------------------------------------
+          EXTRACTED ATTRIBUTES           
+-----------------------------------------
+Name: Not detected
+Phone: Not detected
+Email: Not detected
+SSN: Not detected
+Address: Not detected
+
+-----------------------------------------
+         DIALOGUE / CONVERSATION         
+-----------------------------------------
+[Agent]: Hi
+
+-----------------------------------------
+            ORIGINAL TEXT                
+-----------------------------------------
+Agent: Hi
