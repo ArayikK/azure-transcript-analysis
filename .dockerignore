@@ -1,7 +1,0 @@
-bin/
-obj/
-frontend/
-.git/
-.husky/
-.vs/
-**/*.user
